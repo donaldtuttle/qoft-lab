@@ -1,0 +1,111 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: #0b0c0e;
+  --color-foreground: #e6e4df;
+  --color-card: #12141a;
+  --color-card-foreground: #e6e4df;
+  --color-popover: #16181f;
+  --color-popover-foreground: #e6e4df;
+  --color-primary: #d7d4cc;
+  --color-primary-foreground: #0b0c0e;
+  --color-secondary: #1a1d24;
+  --color-secondary-foreground: #e6e4df;
+  --color-muted: #1a1d24;
+  --color-muted-foreground: #8a8984;
+  --color-accent: #22262e;
+  --color-accent-foreground: #e6e4df;
+  --color-destructive: #b07070;
+  --color-border: #2a2c33;
+  --color-input: #1a1d24;
+  --color-ring: #6a9eaa;
+  --color-signal: #6a9eaa;
+  --color-signal-fg: #0b0c0e;
+  --color-pass: #7d9a7e;
+  --color-warn: #c4a574;
+  --color-faint: #5c5b57;
+  --color-paper: #e6e4df;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius: 0.75rem;
+
+  --shadow-panel: 0 1px 0 color-mix(in oklab, var(--color-foreground) 6%, transparent);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  body {
+    min-height: 100dvh;
+    background:
+      radial-gradient(
+        1200px 600px at 50% -10%,
+        color-mix(in oklab, var(--color-signal) 7%, transparent),
+        transparent 60%
+      ),
+      var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.lab-grid {
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--color-foreground) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--color-foreground) 4%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center top;
+}
