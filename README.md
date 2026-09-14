@@ -1,6 +1,8 @@
 # QOFT Lab
 
-**Live app:** [https://pine-apple-dream-topaz.grok.me/](https://pine-apple-dream-topaz.grok.me/)
+**GitHub Pages:** [QOFT Lab](https://donaldtuttle.github.io/qoft-lab/) (requires the one-time Pages setup below)
+
+**Original Grok app:** [pine-apple-dream-topaz.grok.me](https://pine-apple-dream-topaz.grok.me/)
 
 Interactive **GU × QOFT** calculus toy (n = 2). Metric fiber on X, independent observer field ψ, optional phase-flip intervention.
 
@@ -8,7 +10,35 @@ This is **not a theory of everything**. Geometric Unity names (X, Y = Met(X), ι
 
 **v0.1.2** is a DEVELOP [Typed Realization](docs/TYPED_REALIZATION.md) of the QOFT boundary. Canonical weight: **NONE**.
 
-## Host pin
+## GitHub Pages hosting
+
+The repository contains a standalone Vite app. GitHub Pages serves its built
+`dist/` directory; the simulation runs in the browser.
+
+One-time repository setup: open [Settings → Pages](https://github.com/donaldtuttle/qoft-lab/settings/pages),
+then set **Build and deployment → Source → GitHub Actions**. Run the
+[CI workflow](https://github.com/donaldtuttle/qoft-lab/actions/workflows/ci.yml)
+on `main` if a deployment has not already started.
+
+Every push to `main` runs the TypeScript checks, simulation tests, production
+build, and Python determinism check before publishing. Pull requests run the
+checks without deploying. The Pages build uses `/qoft-lab/` for asset and download
+paths. Local development keeps `/`.
+
+The Contract panel links to the exact commit supplied by the deployment workflow.
+[`version.json`](https://donaldtuttle.github.io/qoft-lab/version.json) records the
+app version, source commit, repository, and workflow run. These identify the
+GitHub build; they make no assertion about the separately hosted Grok build.
+
+To preview the Pages build locally:
+
+```bash
+VITE_BASE_PATH=/qoft-lab/ npm run build
+VITE_BASE_PATH=/qoft-lab/ npm run preview
+# Open http://localhost:4173/qoft-lab/
+```
+
+## Original Grok host pin
 
 ```
 url:           https://pine-apple-dream-topaz.grok.me/
@@ -29,7 +59,7 @@ Observed fingerprint on 2026-09-14 (inference, not a pin):
 
 That is source-equivalent to the v0.1.2 engine tree first published at [`603f09dedfcb718b721d176bc3e21242c746f566`](https://github.com/donaldtuttle/qoft-lab/commit/603f09dedfcb718b721d176bc3e21242c746f566). Later commit `02aa2c55` is README-only and does not change engine files. Equivalence is not a host-issued pin.
 
-The page is for running the model. This repo is for reading, reproducing, and changing it.
+Both hosted pages run the model. This repo also supports reading, reproducing, and changing it.
 
 ## What QOFT calculus is
 
@@ -137,7 +167,9 @@ Telemetry: `gammaNbrNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (**Γ_
 
 ## Run
 
-Live: [QOFT Lab on Grok](https://pine-apple-dream-topaz.grok.me/) — host SHA **UNPINNED**
+GitHub hosting: [QOFT Lab on Pages](https://donaldtuttle.github.io/qoft-lab/) — see setup above.
+
+Original: [QOFT Lab on Grok](https://pine-apple-dream-topaz.grok.me/) — host SHA **UNPINNED**
 
 Local:
 

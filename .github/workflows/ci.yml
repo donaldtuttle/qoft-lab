@@ -4,10 +4,17 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      VITE_BASE_PATH: /qoft-lab/
+      VITE_GIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,3 +30,40 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements-ci.txt
       - run: python public/gu_qoft_toy.py --check-deterministic --out /tmp/telemetry.csv
+      - name: Record deployment source
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+          writeFileSync('dist/version.json', JSON.stringify({
+            version,
+            commit: process.env.GITHUB_SHA,
+            repository: process.env.GITHUB_REPOSITORY,
+            run: process.env.GITHUB_RUN_ID,
+          }, null, 2) + '\n');
+          JS
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

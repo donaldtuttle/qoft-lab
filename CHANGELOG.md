@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — GitHub Pages hosting
+
+- Build and deploy the standalone app to `/qoft-lab/` after CI passes.
+- Make the Python download respect the hosting base path.
+- Show the current host and deployment commit in Contract; publish `version.json`.
+- Document one-time Pages setup and local production preview.
+- No simulation math, constants, fixtures, or realization-contract changes.
+
 ## 0.1.2 — Audit hardening
 
 Governance / semantic precision. **Intended dynamics changes: none.**

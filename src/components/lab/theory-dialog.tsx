@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { LAB_VERSION, LAMBDA_C, REALIZATION } from "@/lib/qoft/sim";
 
 export function TheoryDialog() {
+  const buildSha = import.meta.env.VITE_GIT_SHA;
+  const hostUrl = new URL(import.meta.env.BASE_URL, window.location.origin).href;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -40,14 +43,23 @@ export function TheoryDialog() {
             <dt className="text-faint">Canonical weight</dt>
             <dd className="text-muted-foreground">{REALIZATION.canonicalWeight}</dd>
             <dt className="text-faint">Host pin</dt>
-            <dd className="text-muted-foreground">NONE — Grok publishes no git SHA</dd>
+            <dd className="break-all text-muted-foreground">
+              {buildSha ? (
+                <a
+                  href={`https://github.com/donaldtuttle/qoft-lab/commit/${buildSha}`}
+                  className="text-signal underline-offset-2 hover:underline"
+                >
+                  {buildSha}
+                </a>
+              ) : "UNPINNED — local / custom build"}
+            </dd>
             <dt className="text-faint">Host URL</dt>
             <dd className="break-all text-muted-foreground">
-              pine-apple-dream-topaz.grok.me
+              {hostUrl}
             </dd>
-            <dt className="text-faint">Source match</dt>
+            <dt className="text-faint">Engine version</dt>
             <dd className="text-muted-foreground">
-              inferred v{LAB_VERSION} engine tree 603f09de — not a deploy pin
+              v{LAB_VERSION}
             </dd>
           </dl>
           <p className="text-xs text-faint">v{LAB_VERSION} · see docs/TYPED_REALIZATION.md</p>
@@ -122,7 +134,7 @@ export function TheoryDialog() {
           Same seed is deterministic in this engine (P5). It is not bit-identical to
           the numpy PCG64 original.{" "}
           <a
-            href="/gu_qoft_toy.py"
+            href={`${import.meta.env.BASE_URL}gu_qoft_toy.py`}
             download
             className="text-signal underline-offset-2 hover:underline"
           >
