@@ -8,7 +8,7 @@ const INVARIANTS = [
   {
     id: "P1",
     name: "section law",
-    hint: "π ∘ ι = id — g is stored at each site x",
+    hint: "π(ι(x)) = x at every site — pairing of base point to fiber slot",
   },
   {
     id: "P2",

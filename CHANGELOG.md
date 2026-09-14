@@ -1,6 +1,28 @@
 # Changelog
 
+## 0.1.2 — Audit hardening
+
+Governance / semantic precision. **Intended dynamics changes: none.**
+
+Closes the v0.1.1 audit without touching engine mathematics.
+
+- Restore the full canonical Πᴽ signature `Πᴽ : Ψ × Ctx × M → Ψᴽ`. The toy map
+  is `Πᴽtoy : Ψtoy → Ψtoy` with ctx, M **fixed/unused** (a realization bridge,
+  not a canon rewrite).
+- Declare `encode_A = decode_B = id`, `ctx_toy = (g, α, β, L)`, and the two
+  meanings of ≈: IEEE path **exact** vs v0.1.0; abstract `fuseToy(Π, Γtoy)`
+  **bounded 1e-15**.
+- Rename Γ-neighbor telemetry to `gammaNbrNorm` / ‖Γnbr‖. `gammaNorm` and
+  `reflexNorm` remain deprecated aliases of the same number. This is **not**
+  ‖Γtoy‖.
+- P1 now constructs `ι(x)` / `π` and checks `π(ι(x)) = x` at every site against
+  stored section coordinates. A permuted pairing fails. Shape-only is not enough.
+- Golden fixture SHA-256 + source commit `c344023…` recorded in
+  `src/lib/qoft/fixtures/PROVENANCE.md`.
+- CI NumPy pinned (`requirements-ci.txt`: `numpy==2.2.6`).
+
 ## 0.1.1 — Typed Realization + verification
+
 
 Semantic / type-boundary + verification release. **Intended dynamics changes: none.**
 

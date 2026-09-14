@@ -4,23 +4,34 @@ Interactive **GU × QOFT** calculus toy (n = 2). Metric fiber on X, independent 
 
 This is **not a theory of everything**. Geometric Unity names (X, Y = Met(X), ι, π, ι*) are analogy only.
 
-**v0.1.1** is a DEVELOP [Typed Realization](docs/TYPED_REALIZATION.md) of the QOFT boundary. Canonical weight: **NONE**.
+**v0.1.2** is a DEVELOP [Typed Realization](docs/TYPED_REALIZATION.md) of the QOFT boundary. Canonical weight: **NONE**.
 
 ## Realization boundary
 
-Canon: `Ξ(ψ) = Πᴽ(ψ) ⊕ Γ(ψ; ctx)` with `ψᴽ = Πᴽ(ψ) ∈ Ψᴽ ⊆ Ψ`.
-
-This toy:
+Canon (D-Π-01):
 
 ```
-Ψtoy       := normalized complex scalar fields on the L×L lattice
-Ψᴽtoy      := Ψtoy
-Πᴽtoy(ψ)   := ψ                         # identity self-model, declared
-Gtoy       := complex lattice update fields
-Γtoy(ψ; g) := α · (neighbor_average(ψ) − ψ) + β · Φ_X(g) ⊙ ψ
-⊕toy(ψᴽ, γ):= normalize(ψᴽ + γ)
-Ξtoy(ψ; g) := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+Πᴽ : Ψ × Ctx × M → Ψᴽ
+Ξ(ψ) = Πᴽ(ψ; ctx, M) ⊕ Γ(ψ; ctx)
 ```
+
+This toy (ctx and M are **fixed/unused**, not deleted from canon):
+
+```
+Ψtoy              := normalized complex scalar fields on the L×L lattice
+Ψᴽtoy             := Ψtoy
+encode_A          := id
+decode_B          := id
+ctx_toy           := (g, α, β, L)
+M_toy             := unused / absent
+Πᴽtoy(ψ; ctx, M)  := ψ                         # Πᴽtoy : Ψtoy → Ψtoy
+Gtoy              := complex lattice update fields
+Γtoy(ψ; g)        := α · (neighbor_average(ψ) − ψ) + β · Φ_X(g) ⊙ ψ
+⊕toy(ψᴽ, γ)       := normalize(ψᴽ + γ)
+Ξtoy(ψ; g)        := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+```
+
+`≈` for the operational IEEE tick is **exact equality** vs v0.1.0. `≈` for abstract `fuseToy(Π, Γtoy)` is a **bounded 1e-15** approximation (floating-point `+` is not associative).
 
 Πᴽtoy is intentionally the identity — the toy does not contain a nontrivial reflexive self-model. Internal addition belongs inside ⊕toy. The IEEE tick is the original left-associated three-term sum `N(ψ + α Γ_nbr(ψ) + β Φ_X ⊙ ψ)` so v0.1.0 numerical dynamics are unchanged.
 
@@ -39,7 +50,7 @@ Each tick, in order:
 
 | | Check | What it actually tests |
 |---|---|---|
-| P1 | Section law | π ∘ ι = id (g stored at each site x) |
+| P1 | Section law | `π(ι(x)) = x` at every site against stored section coordinates. A permuted pairing fails. |
 | P2 | det g > 0 | Riemannian; rejected updates leave the SPD cone |
 | P3 | Fiber = 3 | Independent components of symmetric bilinear forms on R² |
 | P4 | Collapse-metric isolation | C = f(ψ) only; λ_c ≠ 14. **Not** an enumerator of every banned id |
@@ -50,7 +61,7 @@ Each tick, in order:
 
 **Out of scope:** Shiab, G = H ⋉ N, spinors, U(64,64), n = 4.
 
-Telemetry: `gammaNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (a Γ-neighbor norm, not Πᴽ). `reflexNorm` is a deprecated alias of the same number.
+Telemetry: `gammaNbrNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (**Γ_nbr**, not full Γtoy). `gammaNorm` / `reflexNorm` are deprecated aliases of the same number.
 
 ## Run
 
@@ -73,11 +84,12 @@ The in-browser engine is seeded and deterministic with itself (P5). It is **not*
 | Path | What |
 |---|---|
 | [`src/lib/qoft/sim.ts`](src/lib/qoft/sim.ts) | Tick engine, Ξtoy, telemetry, P1–P6 |
-| [`src/lib/qoft/sim.test.ts`](src/lib/qoft/sim.test.ts) | Regression + golden v0.1.0 pin |
+| [`src/lib/qoft/sim.test.ts`](src/lib/qoft/sim.test.ts) | Regression + golden v0.1.0 fixture |
 | [`docs/TYPED_REALIZATION.md`](docs/TYPED_REALIZATION.md) | Canonical → runtime crosswalk |
 | [`src/stores/lab-store.ts`](src/stores/lab-store.ts) | Playback, config, CSV export |
 | [`src/components/lab/`](src/components/lab/) | Field canvas, controls, charts, contract |
 | [`public/gu_qoft_toy.py`](public/gu_qoft_toy.py) | Reference Python toy |
+| [`requirements-ci.txt`](requirements-ci.txt) | Pinned NumPy for CI |
 
 ## License
 

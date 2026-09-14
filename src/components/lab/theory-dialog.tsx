@@ -59,9 +59,12 @@ export function TheoryDialog() {
             Ξtoy(ψ) = Π*toy(ψ) ⊕toy Γtoy(ψ; g)
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Π*toy is the identity — this toy does not contain a nontrivial reflexive
-            self-model. ⊕toy is normalize(ψ* + γ). Γtoy is α(avg − ψ) + β Φ_X ⊙ ψ.
-            Internal addition belongs inside ⊕toy.
+            Canonical Πᴽ : Ψ × Ctx × M → Ψᴽ. This toy sets Π*toy : Ψtoy → Ψtoy
+            with ctx = (g, α, β, L) and M unused. encode_A = decode_B = id.
+            Π*toy is the identity — not a hidden self-model. ⊕toy is
+            normalize(ψ* + γ). Γtoy is α(avg − ψ) + β Φ_X ⊙ ψ. Internal addition
+            belongs inside ⊕toy. The IEEE tick is exact vs v0.1.0; abstract
+            fuse(Π, Γtoy) is a bounded 1e-15 approximation.
           </p>
         </section>
 

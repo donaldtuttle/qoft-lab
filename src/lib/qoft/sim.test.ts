@@ -1,22 +1,30 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   EPS_NORM,
+  GOLDEN_FIXTURE,
   LAMBDA_C,
+  QoftSim,
   REALIZATION,
   V0_CONFIG,
   collapseMetric,
+  decodeB,
+  encodeA,
   fiberDim,
   fuseToy,
   gammaToy,
+  iotaAt,
   neighborGamma,
   p4IsolationOk,
   phaseFlipIntervention,
   piReflexToy,
+  piSection,
   runToy,
+  sectionLawHolds,
   xiToy,
   type Config,
 } from "./sim.ts";
@@ -98,6 +106,25 @@ describe("realization declaration", () => {
     assert.equal(REALIZATION.piReflex, "id");
   });
 
+  it("keeps the full canonical Πᴽ signature and declares ctx/M unused", () => {
+    assert.match(REALIZATION.canonicalPi, /Ψ × Ctx × M → Ψ/);
+    assert.equal(REALIZATION.piToy, "Πᴽtoy : Ψtoy → Ψtoy");
+    assert.match(REALIZATION.ctx, /M unused/);
+    assert.equal(REALIZATION.encodeA, "id");
+    assert.equal(REALIZATION.decodeB, "id");
+    assert.match(REALIZATION.approxIeee, /exact/);
+    assert.match(REALIZATION.approxAbstract, /1e-15/);
+  });
+
+  it("encode_A / decode_B are identity on Ψtoy", () => {
+    const r = new Float64Array([0.6, 0.8]);
+    const i = new Float64Array([0.0, 0.0]);
+    const a = encodeA(r, i);
+    const b = decodeB(a.r, a.i);
+    assert.deepEqual(Array.from(b.r), Array.from(r));
+    assert.deepEqual(Array.from(b.i), Array.from(i));
+  });
+
   it("keeps λc as a toy/local threshold, not 14", () => {
     assert.equal(LAMBDA_C, 1.67);
     const lambda: number = LAMBDA_C;
@@ -144,15 +171,46 @@ describe("P1–P6 toy run", () => {
       for (const k of keys) {
         assert.equal(got[k], want[k], `row ${i} ${k}`);
       }
-      assert.equal(got.gammaNorm, want.reflexNorm, `row ${i} gammaNorm`);
+      assert.equal(got.gammaNbrNorm, want.reflexNorm, `row ${i} gammaNbrNorm`);
+      assert.equal(got.gammaNorm, want.reflexNorm, `row ${i} gammaNorm alias`);
       assert.equal(got.reflexNorm, want.reflexNorm, `row ${i} reflexNorm alias`);
     }
+  });
+
+  it("golden fixture SHA-256 matches recorded provenance from c344023", () => {
+    const buf = readFileSync(join(here, "fixtures/v0.1.0-toy-seed7.csv"));
+    const digest = createHash("sha256").update(buf).digest("hex");
+    assert.equal(digest, GOLDEN_FIXTURE.sha256);
+    assert.equal(GOLDEN_FIXTURE.sourceCommit, "c344023c8d7e7d0939f3513d617e24c17fddb2fe");
+    assert.equal(GOLDEN_FIXTURE.kind, "golden fixture");
   });
 
   it("P6: collapse off ⇒ collapsed stays 0", () => {
     const { rows, result } = runToy({ ...V0_CONFIG, collapse: false }, 32);
     assert.ok(rows.every((r) => r.collapsed === 0));
     assert.equal(result.ok, true);
+  });
+});
+
+describe("P1 section law π∘ι=id", () => {
+  it("round-trips every site on a healthy lattice", () => {
+    const sim = new QoftSim(V0_CONFIG);
+    assert.equal(sectionLawHolds(sim.g, sim.siteI, sim.siteJ, sim.L), true);
+    const s = iotaAt(sim.g, sim.siteI, sim.siteJ, sim.L, 3, 5);
+    assert.deepEqual(piSection(s), { i: 3, j: 5 });
+  });
+
+  it("fails if site coordinates are permuted relative to storage slots", () => {
+    const sim = new QoftSim(V0_CONFIG);
+    const k0 = 0;
+    const k1 = sim.L; // (1,0) vs (0,0)
+    const i0 = sim.siteI[k0] ?? 0;
+    const j0 = sim.siteJ[k0] ?? 0;
+    sim.siteI[k0] = sim.siteI[k1] ?? 1;
+    sim.siteJ[k0] = sim.siteJ[k1] ?? 0;
+    sim.siteI[k1] = i0;
+    sim.siteJ[k1] = j0;
+    assert.equal(sectionLawHolds(sim.g, sim.siteI, sim.siteJ, sim.L), false);
   });
 });
 
@@ -226,7 +284,7 @@ describe("P4 collapse-metric isolation", () => {
   it("C is independent of g: same ψ, different fiber → same C", () => {
     const { psiR, psiI } = seededField(8, 5);
     const a = collapseMetric(psiR, psiI);
-    psiR[0] = psiR[0]; // no-op; metric is not an input
+    psiR[0] = psiR[0];
     const b = collapseMetric(psiR, psiI);
     assert.equal(a.Cmax, b.Cmax);
     assert.deepEqual(Array.from(a.C), Array.from(b.C));
@@ -240,7 +298,7 @@ describe("phase-flip intervention is not Λψ", () => {
     const { C } = collapseMetric(psiR, psiI);
     const origR = psiR.slice();
     const origI = psiI.slice();
-    phaseFlipIntervention(psiR, psiI, C, 0); // λ=0 flips every site
+    phaseFlipIntervention(psiR, psiI, C, 0);
     const after = Array.from(psiR).map((re, k) => re * re + (psiI[k] ?? 0) * (psiI[k] ?? 0));
     assert.deepEqual(after, before);
     for (let k = 0; k < psiR.length; k++) {

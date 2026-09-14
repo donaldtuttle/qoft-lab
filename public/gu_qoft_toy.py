@@ -9,7 +9,10 @@ Canonical weight: NONE. Not a canon amendment.
 This toy:
     Ψtoy      := normalized complex scalar fields on the L×L lattice
     Ψᴽtoy     := Ψtoy
-    Πᴽtoy(ψ)  := ψ                         (identity self-model, declared)
+    Πᴽtoy(ψ; ctx, M) := ψ             (identity; ctx, M unused)
+    Canonical Πᴽ : Ψ × Ctx × M → Ψᴽ. This toy fixes ctx, M unused.
+    ctx_toy := (g, α, β, L); M unused/absent
+    encode_A = decode_B = id on Ψtoy
     Gtoy      := complex lattice update fields
     Γtoy(ψ;g) := α·(neighbor_avg(ψ)−ψ) + β·Φ_X(g)⊙ψ
     ⊕toy      := normalize(ψᴽ + γ)
@@ -47,7 +50,7 @@ EPS_DET = 1e-12
 EPS_RHO = 1e-12
 EPS_NORM = 1e-12
 
-LAB_VERSION = "0.1.1"
+LAB_VERSION = "0.1.2"
 
 
 @dataclass(frozen=True)
@@ -90,13 +93,14 @@ def init_state(cfg: Config, rng: np.random.Generator):
         g22 = np.where(bad, np.abs(g22) + 1.0, g22)
         g12 = np.where(bad, 0.0, g12)
     g = np.stack([g11, g12, g22], axis=-1)  # (L,L,3)
+    site_i, site_j = np.meshgrid(np.arange(L), np.arange(L), indexing="ij")
 
     psi = rng.normal(size=(L, L)) + 1j * rng.normal(size=(L, L))
     psi = psi / (np.linalg.norm(psi) + EPS_NORM)
 
     # Y-native scalar Φ_Y(x,g): fiber-dependent (ANALOGY ι* pullback)
     # Φ_Y = tr(g) + 0.1*log(det(g)+eps) — lives as function of (x,g), not ψ
-    return g, psi
+    return g, psi, site_i, site_j
 
 
 def det_g(g: np.ndarray) -> np.ndarray:
@@ -110,12 +114,49 @@ def phi_Y(g: np.ndarray) -> np.ndarray:
     return tr + 0.1 * np.log(np.maximum(d, EPS_DET))
 
 
-def section_law_ok(g: np.ndarray) -> int:
-    """π∘ι=id: ι stores g at each x; π forgets g and returns x.
-    In this discrete toy, sites *are* x; storing g_t(x) at site x satisfies the law.
-    """
-    # structural: array indexed by x implies π(ι(x))=x if we never reindex
-    return 1 if g.ndim == 3 and g.shape[-1] == fiber_dim(2) else 0
+def iota(g: np.ndarray, site_i: np.ndarray, site_j: np.ndarray, i: int, j: int) -> dict:
+    """ι(x) = (x_stored, g(x)). Coordinates live in the section pairing."""
+    return {"x": (int(site_i[i, j]), int(site_j[i, j])), "g": g[i, j]}
+
+
+def pi_section(section: dict) -> tuple[int, int]:
+    """π forgets the fiber and returns the base point."""
+    return section["x"]
+
+
+def section_law_ok(g: np.ndarray, site_i: np.ndarray, site_j: np.ndarray) -> int:
+    """π∘ι=id at every site, unique coverage of X, fiber present."""
+    if g.ndim != 3 or g.shape[-1] != fiber_dim(2):
+        return 0
+    L = g.shape[0]
+    if site_i.shape != (L, L) or site_j.shape != (L, L):
+        return 0
+    seen: set[tuple[int, int]] = set()
+    for i in range(L):
+        for j in range(L):
+            sec = iota(g, site_i, site_j, i, j)
+            x = pi_section(sec)
+            if x != (i, j):
+                return 0
+            if x in seen:
+                return 0
+            seen.add(x)
+    return 1 if len(seen) == L * L else 0
+
+
+def encode_A(psi: np.ndarray) -> np.ndarray:
+    """encode_A : Ψtoy → Ψtoy. Identity."""
+    return psi
+
+
+def decode_B(psi: np.ndarray) -> np.ndarray:
+    """decode_B : Ψtoy → Ψtoy. Identity."""
+    return psi
+
+
+def pi_reflex_toy(psi: np.ndarray, ctx=None, m=None) -> np.ndarray:
+    """Πᴽtoy(ψ; ctx, M) := ψ. ctx and M unused in this realization."""
+    return encode_A(psi)
 
 
 def metric_step(g: np.ndarray, rng: np.random.Generator, eps: float) -> np.ndarray:
@@ -142,11 +183,6 @@ def gamma_psi(psi: np.ndarray) -> np.ndarray:
     right = np.roll(psi, 1, axis=1)
     avg = 0.25 * (up + down + left + right)
     return avg - psi
-
-
-def pi_reflex_toy(psi: np.ndarray) -> np.ndarray:
-    """Πᴽtoy(ψ) := ψ. Identity self-model — declared, not hidden."""
-    return psi
 
 
 def gamma_toy(psi: np.ndarray, phi_x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
@@ -233,7 +269,7 @@ def p4_isolation_ok() -> bool:
 def run(cfg: Config) -> list[dict]:
     assert_v0(cfg)
     rng = np.random.default_rng(cfg.seed)
-    g, psi = init_state(cfg, rng)
+    g, psi, site_i, site_j = init_state(cfg, rng)
     rows: list[dict] = []
 
     for t in range(cfg.ticks):
@@ -251,13 +287,14 @@ def run(cfg: Config) -> list[dict]:
         row = {
             "t": t,
             "stateNorm": float(np.linalg.norm(psi)),
-            "gammaNorm": gnorm,
-            "reflexNorm": gnorm,  # deprecated alias of gammaNorm
+            "gammaNbrNorm": gnorm,
+            "gammaNorm": gnorm,  # deprecated alias of gammaNbrNorm
+            "reflexNorm": gnorm,  # deprecated v0.1.0 alias
             "det_g_min": float(np.min(det)),
             "pullback_mean": float(np.mean(phi_x)),
             "C_max": C_max,
             "collapsed": int(collapsed),
-            "section_law_ok": int(section_law_ok(g)),
+            "section_law_ok": int(section_law_ok(g, site_i, site_j)),
         }
         rows.append(row)
     return rows
@@ -290,6 +327,7 @@ def write_csv(rows: list[dict], path: Path) -> None:
     fields = [
         "t",
         "stateNorm",
+        "gammaNbrNorm",
         "gammaNorm",
         "reflexNorm",
         "det_g_min",

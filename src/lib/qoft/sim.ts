@@ -2,13 +2,17 @@
  * In-browser port of the GU×QOFT n=2 calculus toy.
  *
  * DEVELOP Typed Realization of the QOFT boundary
- *   Ξ(ψ) = Πᴽ(ψ) ⊕ Γ(ψ; ctx)
+ *   Ξ(ψ) = Πᴽ(ψ; ctx, M) ⊕ Γ(ψ; ctx)
+ * Canonical Πᴽ : Ψ × Ctx × M → Ψᴽ   (D-Π-01)
+ * This toy: Πᴽtoy : Ψtoy → Ψtoy with ctx, M fixed/unused.
  * Canonical weight: NONE. Not a canon amendment. Not a TOE.
  *
  * This toy (see docs/TYPED_REALIZATION.md):
  *   Ψtoy      := normalized complex scalar fields on the L×L lattice
  *   Ψᴽtoy     := Ψtoy
- *   Πᴽtoy(ψ)  := ψ                         (identity self-model, declared)
+ *   Πᴽtoy(ψ; ctx, M) := ψ             (identity; ctx, M unused)
+ *   ctx_toy := (g, α, β, L);  M_toy unused/absent
+ *   encode_A = decode_B = id on Ψtoy
  *   Gtoy      := complex lattice update fields
  *   Γtoy(ψ;g) := α·(neighbor_avg(ψ)−ψ) + β·Φ_X(g)⊙ψ
  *   ⊕toy      := normalize(ψᴽ + γ)
@@ -32,7 +36,7 @@
  * to the numpy PCG64 original — different RNG, same tick contract.
  */
 
-export const LAB_VERSION = "0.1.1";
+export const LAB_VERSION = "0.1.2";
 
 export const LAMBDA_C = 1.67;
 export const EPS_DET = 1e-12;
@@ -47,9 +51,26 @@ export const REALIZATION = {
   status: "DEVELOP",
   kind: "Typed Realization",
   canonicalWeight: "NONE",
+  canonicalPi: "Πᴽ : Ψ × Ctx × M → Ψᴽ",
+  piToy: "Πᴽtoy : Ψtoy → Ψtoy",
   piReflex: "id",
+  ctx: "(g, α, β, L) realizes Ctx; M unused/fixed",
+  encodeA: "id",
+  decodeB: "id",
+  approxIeee: "exact equality vs v0.1.0 IEEE tick",
+  approxAbstract: "bounded |fuseToy(Π, Γtoy) − xiToy| < 1e-15",
   lambdaC: "toy/local threshold, not a QOFT universal constant",
   phaseFlip: "experiment-only intervention, not canonical Λψ",
+} as const;
+
+/** Golden fixture provenance. Regression fixture, not a third-party forensic pin. */
+export const GOLDEN_FIXTURE = {
+  path: "src/lib/qoft/fixtures/v0.1.0-toy-seed7.csv",
+  kind: "golden fixture",
+  sourceCommit: "c344023c8d7e7d0939f3513d617e24c17fddb2fe",
+  engine: "src/lib/qoft/sim.ts at sourceCommit (v0.1.0 engine)",
+  config: "V0_CONFIG seed=7 grid=8 collapse=off ticks=32",
+  sha256: "8b9ddbaed92ac9818fc46a219e1a256393eee77468e7b3b9b79656ade2620f53",
 } as const;
 
 export type Config = {
@@ -85,9 +106,11 @@ export const V0_CONFIG: Config = {
 export type TelemetryRow = {
   t: number;
   stateNorm: number;
-  /** ‖neighbor_avg(ψ) − ψ‖ after the tick. This is a Γ-neighbor norm, not Πᴽ. */
+  /** ‖neighbor_avg(ψ) − ψ‖ after the tick. Γ_nbr only — not full Γtoy. */
+  gammaNbrNorm: number;
+  /** @deprecated alias of gammaNbrNorm. */
   gammaNorm: number;
-  /** @deprecated alias of gammaNorm — kept so v0.1.0 CSVs/scripts still parse. */
+  /** @deprecated alias of gammaNbrNorm — v0.1.0 CSV name. */
   reflexNorm: number;
   det_g_min: number;
   pullback_mean: number;
@@ -99,6 +122,7 @@ export type TelemetryRow = {
 export const CSV_FIELDS: (keyof TelemetryRow)[] = [
   "t",
   "stateNorm",
+  "gammaNbrNorm",
   "gammaNorm",
   "reflexNorm",
   "det_g_min",
@@ -167,12 +191,102 @@ function assertV0(cfg: Config): void {
 
 export type ComplexField = { r: Float64Array; i: Float64Array };
 
-/** Πᴽtoy(ψ) := ψ. Identity self-model — declared, not hidden. */
-export function piReflexToy(psiR: Float64Array, psiI: Float64Array): ComplexField {
+/** Ctx realized by this toy: metric fiber + coupling + lattice size. */
+export type CtxToy = {
+  g: Float64Array;
+  alpha: number;
+  beta: number;
+  L: number;
+};
+
+/** M is unused in this realization (fixed/absent). */
+export type MToy = null;
+
+export type Site = { i: number; j: number };
+export type Section = { x: Site; g: [number, number, number] };
+
+/**
+ * encode_A : Ψtoy → Ψtoy. Identity.
+ * Maps the runtime observer field into the realization carrier.
+ */
+export function encodeA(psiR: Float64Array, psiI: Float64Array): ComplexField {
   return { r: psiR.slice(), i: psiI.slice() };
 }
 
-/** Neighbor-average minus ψ. The Γ_nbr stand-in used by Γtoy and by gammaNorm. */
+/** decode_B : Ψtoy → Ψtoy. Identity. Inverse of encode_A. */
+export function decodeB(psiR: Float64Array, psiI: Float64Array): ComplexField {
+  return { r: psiR.slice(), i: psiI.slice() };
+}
+
+/**
+ * Πᴽtoy(ψ; ctx, M) := ψ.
+ * Canonical target is Πᴽ : Ψ × Ctx × M → Ψᴽ.
+ * This realization fixes ctx and M unused — identity self-model, declared.
+ */
+export function piReflexToy(
+  psiR: Float64Array,
+  psiI: Float64Array,
+  _ctx?: CtxToy | null,
+  _m?: MToy,
+): ComplexField {
+  return encodeA(psiR, psiI);
+}
+
+/** π(s) forgets the fiber and returns the base point. */
+export function piSection(s: Section): Site {
+  return s.x;
+}
+
+/**
+ * ι(x) = (x_stored, g(x)). Site coordinates live in the section pairing
+ * (siteI/siteJ), not inferred from the lookup key alone.
+ */
+export function iotaAt(
+  g: Float64Array,
+  siteI: ArrayLike<number>,
+  siteJ: ArrayLike<number>,
+  L: number,
+  i: number,
+  j: number,
+): Section {
+  const k = i * L + j;
+  return {
+    x: { i: Number(siteI[k]), j: Number(siteJ[k]) },
+    g: [g[k * 3] ?? 0, g[k * 3 + 1] ?? 0, g[k * 3 + 2] ?? 0],
+  };
+}
+
+/**
+ * P1: π ∘ ι = id over every site, unique coverage of X, fiber present.
+ * Fails if site coordinates are permuted relative to storage slots.
+ */
+export function sectionLawHolds(
+  g: Float64Array,
+  siteI: ArrayLike<number>,
+  siteJ: ArrayLike<number>,
+  L: number,
+): boolean {
+  const N = L * L;
+  if (g.length !== N * fiberDim(2)) return false;
+  if (siteI.length !== N || siteJ.length !== N) return false;
+  const seen = new Set<string>();
+  for (let i = 0; i < L; i++) {
+    for (let j = 0; j < L; j++) {
+      const s = iotaAt(g, siteI, siteJ, L, i, j);
+      const x = piSection(s);
+      if (x.i !== i || x.j !== j) return false;
+      if (!Number.isFinite(s.g[0]) || !Number.isFinite(s.g[1]) || !Number.isFinite(s.g[2])) {
+        return false;
+      }
+      const key = `${x.i},${x.j}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+  }
+  return seen.size === N;
+}
+
+/** Neighbor-average minus ψ. The Γ_nbr stand-in used by Γtoy and by gammaNbrNorm. */
 export function neighborGamma(
   psiR: Float64Array,
   psiI: Float64Array,
@@ -363,6 +477,9 @@ export class QoftSim {
   L: number;
   rng: SeededRng;
   g: Float64Array;
+  /** Immutable section pairing: slot k stores base point (siteI[k], siteJ[k]). */
+  siteI: Int16Array;
+  siteJ: Int16Array;
   psiR: Float64Array;
   psiI: Float64Array;
   phi: Float64Array;
@@ -376,14 +493,39 @@ export class QoftSim {
     this.cfg = { ...cfg };
     this.L = cfg.grid;
     this.rng = new SeededRng(cfg.seed);
-    const N = this.L * this.L;
-    this.g = new Float64Array(N * 3);
-    this.psiR = new Float64Array(N);
-    this.psiI = new Float64Array(N);
-    this.phi = new Float64Array(N);
-    this.C = new Float64Array(N);
-    this.det = new Float64Array(N);
+    const alloc = this.allocate(this.L);
+    this.g = alloc.g;
+    this.siteI = alloc.siteI;
+    this.siteJ = alloc.siteJ;
+    this.psiR = alloc.psiR;
+    this.psiI = alloc.psiI;
+    this.phi = alloc.phi;
+    this.C = alloc.C;
+    this.det = alloc.det;
     this.initState();
+  }
+
+  private allocate(L: number) {
+    const N = L * L;
+    const siteI = new Int16Array(N);
+    const siteJ = new Int16Array(N);
+    for (let i = 0; i < L; i++) {
+      for (let j = 0; j < L; j++) {
+        const k = i * L + j;
+        siteI[k] = i;
+        siteJ[k] = j;
+      }
+    }
+    return {
+      g: new Float64Array(N * 3),
+      siteI,
+      siteJ,
+      psiR: new Float64Array(N),
+      psiI: new Float64Array(N),
+      phi: new Float64Array(N),
+      C: new Float64Array(N),
+      det: new Float64Array(N),
+    };
   }
 
   reset(cfg?: Partial<Config>): void {
@@ -391,13 +533,15 @@ export class QoftSim {
     assertV0(this.cfg);
     this.L = this.cfg.grid;
     this.rng = new SeededRng(this.cfg.seed);
-    const N = this.L * this.L;
-    this.g = new Float64Array(N * 3);
-    this.psiR = new Float64Array(N);
-    this.psiI = new Float64Array(N);
-    this.phi = new Float64Array(N);
-    this.C = new Float64Array(N);
-    this.det = new Float64Array(N);
+    const alloc = this.allocate(this.L);
+    this.g = alloc.g;
+    this.siteI = alloc.siteI;
+    this.siteJ = alloc.siteJ;
+    this.psiR = alloc.psiR;
+    this.psiI = alloc.psiI;
+    this.phi = alloc.phi;
+    this.C = alloc.C;
+    this.det = alloc.det;
     this.t = 0;
     this.last = null;
     this.initState();
@@ -497,7 +641,7 @@ export class QoftSim {
   }
 
   private sectionLawOk(): number {
-    return this.g.length === this.L * this.L * fiberDim(2) ? 1 : 0;
+    return sectionLawHolds(this.g, this.siteI, this.siteJ, this.L) ? 1 : 0;
   }
 
   step(): TelemetryRow {
@@ -524,6 +668,7 @@ export class QoftSim {
     const row: TelemetryRow = {
       t: this.t,
       stateNorm: Math.sqrt(state),
+      gammaNbrNorm: gNorm,
       gammaNorm: gNorm,
       reflexNorm: gNorm,
       det_g_min: detMin,

@@ -3,7 +3,7 @@
 **Status:** DEVELOP  
 **Kind:** Typed Realization of the QOFT boundary  
 **Canonical weight:** NONE  
-**Lab version:** 0.1.1  
+**Lab version:** 0.1.2  
 
 This document follows the project Typed Realization Registry discipline:
 canonical target → runtime implementation → implementation type → omitted
@@ -23,30 +23,39 @@ machinery into the dynamics.
 
 ## Canonical boundary
 
-Canon fixes ψᴽ ∈ Ψᴽ ⊆ Ψ, Γ ∈ G, and ⊕ : Ψᴽ × G → Ψ, with
+Canon (D-Π-01) pins
 
 ```
-Ξ(ψ) = ψᴽ ⊕ Γ(ψ; ctx)     where ψᴽ = Πᴽ(ψ)
+Πᴽ : Ψ × Ctx × M → Ψᴽ
+Γ  ∈ G
+⊕  : Ψᴽ × G → Ψ
+Ξ(ψ) = Πᴽ(ψ; ctx, M) ⊕ Γ(ψ; ctx)
 ```
 
-The realization may choose concrete representations and internal arithmetic.
+The realization may choose concrete representations, fix unused arguments,
+and pick internal arithmetic. Fixing an argument is a **realization bridge**,
+not a change to the canonical target.
 
 ## This toy
 
 ```
-Ψtoy       := normalized complex scalar fields over the L×L lattice
-Ψᴽtoy      := Ψtoy
-Πᴽtoy(ψ)   := ψ
-Gtoy       := complex lattice update fields
-Γtoy(ψ; g) := α · (neighbor_average(ψ) − ψ) + β · Φ_X(g) ⊙ ψ
-⊕toy(ψᴽ, γ):= normalize(ψᴽ + γ)
-Ξtoy(ψ; g) := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+Ψtoy              := normalized complex scalar fields over the L×L lattice
+Ψᴽtoy             := Ψtoy
+encode_A          := id  : Ψtoy → Ψtoy
+decode_B          := id  : Ψtoy → Ψtoy
+ctx_toy           := (g, α, β, L)          # realizes Ctx
+M_toy             := unused / absent       # M is fixed, not deleted from canon
+Πᴽtoy(ψ; ctx, M)  := ψ                     # Πᴽtoy : Ψtoy → Ψtoy
+Gtoy              := complex lattice update fields
+Γtoy(ψ; g)        := α · (neighbor_average(ψ) − ψ) + β · Φ_X(g) ⊙ ψ
+⊕toy(ψᴽ, γ)       := normalize(ψᴽ + γ)
+Ξtoy(ψ; g)        := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
 ```
 
-Πᴽtoy is an **intentionally trivial identity self-model**. Equality
+Πᴽtoy is an **intentionally trivial identity self-model**. Canonical Πᴽ still
+takes (ψ, ctx, M); this realization does not read ctx or M. Equality
 Ψᴽtoy = Ψtoy is compatible with the canonical subspace relationship for this
-particular realization. This is scientifically cleaner than pretending the
-toy already contains a nontrivial reflexive model.
+particular realization.
 
 Internal addition belongs inside ⊕toy. The formula
 
@@ -55,16 +64,26 @@ Internal addition belongs inside ⊕toy. The formula
 ```
 
 is the rendered IEEE arithmetic of Ξtoy (left-associated three-term sum),
-identical to v0.1.0. The abstract composition `fuseToy(Πᴽtoy(ψ), Γtoy(ψ))`
-may differ by ulps because floating-point `+` is not associative. The tick
-uses the three-term form so intended dynamics are unchanged.
+identical to v0.1.0.
+
+## Meaning of ≈
+
+| Path | Relation | Meaning |
+|---|---|---|
+| Operational IEEE tick `xiToy` | **exact equality** | bit-identical to the v0.1.0 monolithic three-term sum on the same inputs |
+| Abstract `fuseToy(Πᴽtoy(ψ), Γtoy(ψ))` | **bounded approximation** | componentwise `\|·\| < 1e-15` vs the IEEE tick (FP `+` is not associative) |
+| `encode_A` / `decode_B` | **exact equality** | identity; `decode_B ∘ encode_A = id` on Ψtoy |
+| JS vs Python telemetry | **not claimed** | different RNGs (sfc32 vs numpy PCG64); same tick contract |
 
 ## Crosswalk
 
 | Canonical target | Runtime implementation | Implementation type | Omitted behavior | Supported claim |
 |---|---|---|---|---|
-| Ξ(ψ) = ψᴽ ⊕ Γ(ψ; ctx) | `xiToy` / `xi_toy` | exact arithmetic of this toy | nontrivial Πᴽ, Shiab, spinors, n=4 | this toy implements the boundary as identity-Πᴽ + additive-⊕ |
-| Πᴽ : Ψ → Ψᴽ | `piReflexToy` = id | identity | nontrivial reflexive self-model | Πᴽtoy is declared identity, not a hidden self-model |
+| Ξ(ψ) = Πᴽ(ψ; ctx, M) ⊕ Γ(ψ; ctx) | `xiToy` IEEE path | exact vs v0.1.0 | nontrivial Πᴽ, Shiab, spinors, n=4 | this toy implements the boundary as identity-Πᴽ + additive-⊕ |
+| Πᴽ : Ψ × Ctx × M → Ψᴽ | `piReflexToy(ψ)` | identity; ctx, M unused | nontrivial reflexive self-model; ctx/M dependence | Πᴽtoy is declared identity. Canon is not rewritten. |
+| Ctx | `(g, α, β, L)` | metric fiber + couplings + lattice | other context channels | ctx_toy is this 4-tuple |
+| M | unused / absent | fixed | any M-dependence | omission is a bridge, not a canon edit |
+| encode_A, decode_B | `encodeA` / `decodeB` | identity | nontrivial representation change | Ψtoy is the carrier |
 | Γ ∈ G | `gammaToy` | neighbor difference + pullback coupling | Shiab, G = H ⋉ N | Γtoy is a lattice update carrier |
 | ⊕ : Ψᴽ × G → Ψ | `fuseToy` = N(ψᴽ+γ) | additive then L2 normalize | other fusion algebras | internal addition lives inside ⊕toy |
 | Λψ | `phaseFlipIntervention` | local × −1 on C > λ_c | projection-like commitment, irreversibility | **not** a realization of canonical Λψ |
@@ -75,7 +94,7 @@ uses the three-term form so intended dynamics are unchanged.
 
 | | Check | What it actually tests |
 |---|---|---|
-| P1 | section law | g is stored at each site x (π ∘ ι = id in this discrete toy) |
+| P1 | section law | `π(ι(x)) = x` at every site, unique coverage of X, fiber present at the paired slot. Site coordinates are stored in the section pairing (`siteI`, `siteJ`). A permuted pairing fails. |
 | P2 | det g > 0 | rejected metric updates leave the SPD cone |
 | P3 | fiber = 3 | n=2 symmetric bilinear forms have 3 independent components |
 | P4 | collapse-metric isolation | C = f(ψ) only; λ_c ≠ 14; `collapseMetric` arity is ψ only |
@@ -88,16 +107,33 @@ by construction and review, not by a class-exhaustion enumerator.
 
 ## Telemetry
 
-`gammaNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick. It is a Γ-neighbor
-norm, not a reflexive/self-model norm. `reflexNorm` is a deprecated alias
-of `gammaNorm` so v0.1.0 CSVs and scripts still parse.
+`gammaNbrNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick. That is **Γ_nbr**,
+not the full Γtoy carrier `α Γ_nbr + β Φ_X ⊙ ψ`. The chart labels it ‖Γnbr‖.
+
+`gammaNorm` and `reflexNorm` are deprecated aliases of `gammaNbrNorm` so
+older CSVs still parse.
+
+## Golden fixture
+
+`src/lib/qoft/fixtures/v0.1.0-toy-seed7.csv` is a **golden fixture** (regression
+artifact), not a third-party forensic pin.
+
+| | |
+|---|---|
+| Source commit | `c344023c8d7e7d0939f3513d617e24c17fddb2fe` (v0.1.0 engine) |
+| Config | V0: seed 7, grid 8, collapse off, 32 ticks |
+| SHA-256 | `8b9ddbaed92ac9818fc46a219e1a256393eee77468e7b3b9b79656ade2620f53` |
+
+See `src/lib/qoft/fixtures/PROVENANCE.md`. Tests hash the file and compare
+telemetry fields against it.
 
 ## What this does not claim
 
 - Canonical Λψ has been realized.
-- Πᴽ is nontrivial.
+- Πᴽ is nontrivial, or that ctx/M have been dropped from canon.
 - GU geometry (Shiab, G = H ⋉ N, spinors, U(64,64), n=4) is present.
 - λ_c = 1.67 is a QOFT universal constant.
 - Bit-identity with the numpy PCG64 original (different RNG; same contract).
+- `gammaNbrNorm` is ‖Γtoy‖.
 
-Intended numerical dynamics relative to v0.1.0: **none**.
+Intended numerical dynamics relative to v0.1.0 / v0.1.1: **none**.

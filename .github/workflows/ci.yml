@@ -21,5 +21,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install numpy
+      - run: pip install -r requirements-ci.txt
       - run: python public/gu_qoft_toy.py --check-deterministic --out /tmp/telemetry.csv
