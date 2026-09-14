@@ -8,7 +8,28 @@ This is **not a theory of everything**. Geometric Unity names (X, Y = Met(X), ι
 
 **v0.1.2** is a DEVELOP [Typed Realization](docs/TYPED_REALIZATION.md) of the QOFT boundary. Canonical weight: **NONE**.
 
-The live page and this repository are the same toy: same version, same tick order, same λ_c = 1.67, same six checks. The page is for running the model. This repo is for reading, reproducing, and changing it. The hosted Grok URL is not pinned to a published commit SHA in this file.
+## Host pin
+
+```
+url:           https://pine-apple-dream-topaz.grok.me/
+commit SHA:    NONE
+status:        UNPINNED
+project id:    01a09d59-018f-77b2-aea0-083cd64d0043  (Grok App Builder; not a git SHA)
+bundle:        /assets/routes-DYD6vqoF.js
+```
+
+The Grok host and `__grok/manifest.webmanifest` publish **no git commit**. Do not treat the live URL as a verified deployment of `main`.
+
+Observed fingerprint on 2026-09-14 (inference, not a pin):
+
+- UI version string `v 0.1.2`
+- minified engine object matches this repo's v0.1.2 `REALIZATION` (`DEVELOP`, `canonicalWeight: NONE`, D-Π-01 Πᴽ signature)
+- CSV fields include `gammaNbrNorm` (v0.1.2 rename)
+- no `603f09de`, `02aa2c55`, or other git SHA in the bundle
+
+That is source-equivalent to the v0.1.2 engine tree first published at [`603f09dedfcb718b721d176bc3e21242c746f566`](https://github.com/donaldtuttle/qoft-lab/commit/603f09dedfcb718b721d176bc3e21242c746f566). Later commit `02aa2c55` is README-only and does not change engine files. Equivalence is not a host-issued pin.
+
+The page is for running the model. This repo is for reading, reproducing, and changing it.
 
 ## What QOFT calculus is
 
@@ -42,7 +63,7 @@ The inspectable reference engine and public operator contract live in [`qoft-cal
 | Repo | Role |
 |---|---|
 | [donaldtuttle/qoft-lab](https://github.com/donaldtuttle/qoft-lab) | This n=2 lattice toy + live Grok lab |
-| [donaldtuttle/qoft-calculus](https://github.com/donaldtuttle/qoft-calculus) | Glyphogenic Calculus reference engine, Public Typed Realization A, Memory Weather, R±² surfaces |
+| [donaldtuttle/qoft-calculus](https://github.com/donaldtuttle/qoft-calculus) | Glyphogenic Calculus reference engine, Public Typed Realization A, Memory Weather, R¹² surfaces |
 | [donaldtuttle/qosmos-kernel](https://github.com/donaldtuttle/qosmos-kernel) | Minimal contract-enforced QOSMOS runtime kernel |
 | [donaldtuttle/HME](https://github.com/donaldtuttle/HME) | Hybrid field+ledger memory engine (DEVELOP; canonical weight none) |
 | [donaldtuttle/QOFT_Scaffold_Public](https://github.com/donaldtuttle/QOFT_Scaffold_Public) | Historical public scaffold / calculus genealogy |
@@ -116,7 +137,7 @@ Telemetry: `gammaNbrNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (**Γ_
 
 ## Run
 
-Live: [QOFT Lab on Grok](https://pine-apple-dream-topaz.grok.me/)
+Live: [QOFT Lab on Grok](https://pine-apple-dream-topaz.grok.me/) — host SHA **UNPINNED**
 
 Local:
 

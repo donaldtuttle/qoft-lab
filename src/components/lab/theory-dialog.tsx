@@ -39,6 +39,16 @@ export function TheoryDialog() {
             <dd className="text-muted-foreground">experiment-only intervention</dd>
             <dt className="text-faint">Canonical weight</dt>
             <dd className="text-muted-foreground">{REALIZATION.canonicalWeight}</dd>
+            <dt className="text-faint">Host pin</dt>
+            <dd className="text-muted-foreground">NONE — Grok publishes no git SHA</dd>
+            <dt className="text-faint">Host URL</dt>
+            <dd className="break-all text-muted-foreground">
+              pine-apple-dream-topaz.grok.me
+            </dd>
+            <dt className="text-faint">Source match</dt>
+            <dd className="text-muted-foreground">
+              inferred v{LAB_VERSION} engine tree 603f09de — not a deploy pin
+            </dd>
           </dl>
           <p className="text-xs text-faint">v{LAB_VERSION} · see docs/TYPED_REALIZATION.md</p>
         </section>
