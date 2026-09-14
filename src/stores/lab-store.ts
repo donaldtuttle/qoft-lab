@@ -88,7 +88,7 @@ export const useLab = create<LabState>()((set, get) => ({
   result: null,
   hover: null,
   pinned: null,
-  logLine: "Idle — press Toy run for a 32-tick P1–P6 check.",
+  logLine: "Idle — press Toy run for a 32-tick P1–P6 check. Canonical weight: NONE.",
   init: () => {
     sim = new QoftSim(get().config);
     set({
@@ -118,7 +118,7 @@ export const useLab = create<LabState>()((set, get) => ({
     set({ config: { ...V0_CONFIG } });
     get().reset();
     set({
-      logLine: "Loaded v0 defaults · grid 8 · seed 7 · collapse off",
+      logLine: "Loaded v0 defaults · grid 8 · seed 7 · phase-flip off",
     });
   },
   reset: () => {
@@ -132,7 +132,7 @@ export const useLab = create<LabState>()((set, get) => ({
       hover: null,
       pinned: null,
       playing: false,
-      logLine: `Reset · seed ${config.seed} · grid ${config.grid}×${config.grid} · collapse ${config.collapse ? "on" : "off"}`,
+      logLine: `Reset · seed ${config.seed} · grid ${config.grid}×${config.grid} · phase-flip ${config.collapse ? "on" : "off"}`,
     });
   },
   step: () => {

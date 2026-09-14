@@ -167,15 +167,15 @@ export function ControlPanel() {
         </Row>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-2.5">
           <div>
-            <div className="text-sm font-medium">Collapse gate</div>
-            <div className="font-mono text-xs text-muted-foreground">
-              C {">"} λ<sub>c</sub> = {LAMBDA_C}
+            <div className="text-sm font-medium">Phase-flip gate</div>
+            <div className="text-xs leading-snug text-muted-foreground">
+              Toy intervention · C {">"} λ<sub>c</sub> = {LAMBDA_C} · × −1, reversible
             </div>
           </div>
           <Switch
             checked={config.collapse}
             onCheckedChange={(v) => patch({ collapse: v }, false)}
-            aria-label="Toggle collapse gate"
+            aria-label="Toggle phase-flip gate"
           />
         </div>
       </div>

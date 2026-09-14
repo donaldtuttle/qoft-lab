@@ -7,6 +7,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { LAB_VERSION, LAMBDA_C, REALIZATION } from "@/lib/qoft/sim";
 
 export function TheoryDialog() {
   return (
@@ -25,6 +26,23 @@ export function TheoryDialog() {
           </DialogDescription>
         </DialogHeader>
 
+        <section className="flex flex-col gap-2 rounded-lg border border-border bg-secondary px-3 py-2.5">
+          <h3 className="text-sm font-medium">Classification</h3>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            <dt className="text-faint">GU terms</dt>
+            <dd className="text-muted-foreground">analogy only</dd>
+            <dt className="text-faint">QOFT code</dt>
+            <dd className="text-muted-foreground">
+              {REALIZATION.status} {REALIZATION.kind}
+            </dd>
+            <dt className="text-faint">Phase flip</dt>
+            <dd className="text-muted-foreground">experiment-only intervention</dd>
+            <dt className="text-faint">Canonical weight</dt>
+            <dd className="text-muted-foreground">{REALIZATION.canonicalWeight}</dd>
+          </dl>
+          <p className="text-xs text-faint">v{LAB_VERSION} · see docs/TYPED_REALIZATION.md</p>
+        </section>
+
         <section className="flex flex-col gap-2">
           <h3 className="text-sm font-medium">Spaces</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -32,6 +50,18 @@ export function TheoryDialog() {
             bilinear forms at each site — three independent components for n=2.
             ι stores g at x; π forgets g and returns x. ψ is an observer field on X,
             independent of Y.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">Realization</h3>
+          <p className="font-mono text-xs leading-relaxed text-muted-foreground">
+            Ξtoy(ψ) = Π*toy(ψ) ⊕toy Γtoy(ψ; g)
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Π*toy is the identity — this toy does not contain a nontrivial reflexive
+            self-model. ⊕toy is normalize(ψ* + γ). Γtoy is α(avg − ψ) + β Φ_X ⊙ ψ.
+            Internal addition belongs inside ⊕toy.
           </p>
         </section>
 
@@ -46,21 +76,24 @@ export function TheoryDialog() {
               Pullback toy: Φ_X = Φ_Y(x, g_t(x)) = tr(g) + 0.1 log det(g).
             </li>
             <li>
-              QOFT tick on ψ only: ψ ← normalize(ψ + α Γ(ψ) + β Φ_X · ψ), where Γ is
-              a neighbor average minus ψ — a typed fusion stand-in, not Shiab.
+              QOFT tick: ψ ← Ξtoy(ψ; g). Same arithmetic as the original normalize(ψ +
+              α Γ_nbr(ψ) + β Φ_X · ψ). Γ_nbr is a neighbor average minus ψ — not Shiab.
             </li>
             <li>
-              Optional collapse on ψ: C = |ψ|² / (ρ + ε). If C {">"} λ_c = 1.67, flip
-              local phase (multiply by −1). The gate does not see dim(Y), 14, or Shiab.
+              Optional phase-flip intervention: C = |ψ|² / (ρ + ε). If C {">"} λ_c ={" "}
+              {LAMBDA_C}, multiply those sites by −1. This preserves |ψ|² and is
+              reversible; it is not a realization of canonical Λψ. λ_c is a toy/local
+              threshold, not a QOFT universal constant.
             </li>
           </ol>
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">Banned identifications</h3>
+          <h3 className="text-sm font-medium">Model constraints</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Y = ψ · Shiab in C · literal 14 in C · G = Y · retrieve-as-ID. The run
-            fails if those enter the dynamics.
+            Y = ψ · Shiab in C · literal 14 in C · G = Y · retrieve-as-ID. These are
+            design bans, not an exhaustive runtime enumerator. P4 mechanically checks
+            that C is a function of ψ only.
           </p>
         </section>
 

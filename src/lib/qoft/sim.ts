@@ -1,19 +1,38 @@
 /**
  * In-browser port of the GU×QOFT n=2 calculus toy.
  *
- * Tick contract (ψ only; metric on ι = g):
+ * DEVELOP Typed Realization of the QOFT boundary
+ *   Ξ(ψ) = Πᴽ(ψ) ⊕ Γ(ψ; ctx)
+ * Canonical weight: NONE. Not a canon amendment. Not a TOE.
+ *
+ * This toy (see docs/TYPED_REALIZATION.md):
+ *   Ψtoy      := normalized complex scalar fields on the L×L lattice
+ *   Ψᴽtoy     := Ψtoy
+ *   Πᴽtoy(ψ)  := ψ                         (identity self-model, declared)
+ *   Gtoy      := complex lattice update fields
+ *   Γtoy(ψ;g) := α·(neighbor_avg(ψ)−ψ) + β·Φ_X(g)⊙ψ
+ *   ⊕toy      := normalize(ψᴽ + γ)
+ *   Ξtoy      := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+ *
+ * Tick order is unchanged from v0.1.0:
  *   1. g ← g + ε σ  (symmetric 2-tensor; reject det ≤ 0)
  *   2. Φ_X = Φ_Y(x, g_t(x)) = tr(g) + 0.1 log det(g)
- *   3. ψ ← normalize(ψ + α Γ(ψ) + β Φ_X · ψ)
- *   4. optional collapse: C = |ψ|² / (ρ+ε); if C > λ_c, local phase flip
+ *   3. ψ ← Ξtoy(ψ; g)     [same arithmetic as normalize(ψ + α Γ_nbr(ψ) + β Φ_X·ψ)]
+ *   4. optional phase-flip intervention on ψ: C = collapseMetric(ψ);
+ *      if C > λ_c, local × −1. Not canonical Λψ.
  *
- * GU names are analogy only. Not a TOE.
- * Banned in the dynamics: Y==ψ, Shiab in C, 14 in C, G==Y, retrieve-as-ID.
+ * λ_c = 1.67 is a toy/local threshold, not a QOFT universal constant.
+ *
+ * GU names are analogy only.
+ * Model constraints (not one numeric check): Y==ψ, Shiab in C, 14 in C,
+ * G==Y, retrieve-as-ID.
  * Out of scope: Shiab, G=H⋉N, spinors, U(64,64), n=4.
  *
  * Seeded JS engine is deterministic with itself (P5). It is not bit-identical
  * to the numpy PCG64 original — different RNG, same tick contract.
  */
+
+export const LAB_VERSION = "0.1.1";
 
 export const LAMBDA_C = 1.67;
 export const EPS_DET = 1e-12;
@@ -23,6 +42,15 @@ export const EPS_NORM = 1e-12;
 export const TOY_TICKS = 32;
 export const TOY_SEED = 7;
 export const TOY_GRID = 8;
+
+export const REALIZATION = {
+  status: "DEVELOP",
+  kind: "Typed Realization",
+  canonicalWeight: "NONE",
+  piReflex: "id",
+  lambdaC: "toy/local threshold, not a QOFT universal constant",
+  phaseFlip: "experiment-only intervention, not canonical Λψ",
+} as const;
 
 export type Config = {
   seed: number;
@@ -57,6 +85,9 @@ export const V0_CONFIG: Config = {
 export type TelemetryRow = {
   t: number;
   stateNorm: number;
+  /** ‖neighbor_avg(ψ) − ψ‖ after the tick. This is a Γ-neighbor norm, not Πᴽ. */
+  gammaNorm: number;
+  /** @deprecated alias of gammaNorm — kept so v0.1.0 CSVs/scripts still parse. */
   reflexNorm: number;
   det_g_min: number;
   pullback_mean: number;
@@ -68,6 +99,7 @@ export type TelemetryRow = {
 export const CSV_FIELDS: (keyof TelemetryRow)[] = [
   "t",
   "stateNorm",
+  "gammaNorm",
   "reflexNorm",
   "det_g_min",
   "pullback_mean",
@@ -131,6 +163,199 @@ function assertV0(cfg: Config): void {
   if (fiberDim(cfg.n) !== 3) {
     throw new Error("P3: n=2 fiber must have exactly 3 components");
   }
+}
+
+export type ComplexField = { r: Float64Array; i: Float64Array };
+
+/** Πᴽtoy(ψ) := ψ. Identity self-model — declared, not hidden. */
+export function piReflexToy(psiR: Float64Array, psiI: Float64Array): ComplexField {
+  return { r: psiR.slice(), i: psiI.slice() };
+}
+
+/** Neighbor-average minus ψ. The Γ_nbr stand-in used by Γtoy and by gammaNorm. */
+export function neighborGamma(
+  psiR: Float64Array,
+  psiI: Float64Array,
+  L: number,
+): ComplexField {
+  const N = L * L;
+  const r = new Float64Array(N);
+  const i = new Float64Array(N);
+  for (let row = 0; row < L; row++) {
+    const up = (row - 1 + L) % L;
+    const down = (row + 1) % L;
+    for (let col = 0; col < L; col++) {
+      const left = (col - 1 + L) % L;
+      const right = (col + 1) % L;
+      const k = row * L + col;
+      const ar =
+        0.25 *
+        (psiR[up * L + col] +
+          psiR[down * L + col] +
+          psiR[row * L + left] +
+          psiR[row * L + right]);
+      const ai =
+        0.25 *
+        (psiI[up * L + col] +
+          psiI[down * L + col] +
+          psiI[row * L + left] +
+          psiI[row * L + right]);
+      r[k] = ar - (psiR[k] ?? 0);
+      i[k] = ai - (psiI[k] ?? 0);
+    }
+  }
+  return { r, i };
+}
+
+/**
+ * Γtoy(ψ; g) := α·(neighbor_avg(ψ)−ψ) + β·Φ_X(g)⊙ψ
+ * `phi` is the already-pulled-back Φ_X(g). Gtoy is this complex update field.
+ */
+export function gammaToy(
+  psiR: Float64Array,
+  psiI: Float64Array,
+  phi: Float64Array,
+  L: number,
+  alpha: number,
+  beta: number,
+): ComplexField {
+  const nbr = neighborGamma(psiR, psiI, L);
+  const N = L * L;
+  const r = new Float64Array(N);
+  const i = new Float64Array(N);
+  for (let k = 0; k < N; k++) {
+    const pr = psiR[k] ?? 0;
+    const pi = psiI[k] ?? 0;
+    const ph = phi[k] ?? 0;
+    r[k] = alpha * (nbr.r[k] ?? 0) + beta * (ph * pr);
+    i[k] = alpha * (nbr.i[k] ?? 0) + beta * (ph * pi);
+  }
+  return { r, i };
+}
+
+/** ⊕toy(ψᴽ, γ) := normalize(ψᴽ + γ). Abstract fusion on a pre-summed γ. */
+export function fuseToy(
+  psiStarR: Float64Array,
+  psiStarI: Float64Array,
+  gammaR: Float64Array,
+  gammaI: Float64Array,
+): ComplexField {
+  const N = psiStarR.length;
+  const r = new Float64Array(N);
+  const i = new Float64Array(N);
+  let ns = 0;
+  for (let k = 0; k < N; k++) {
+    const nr = (psiStarR[k] ?? 0) + (gammaR[k] ?? 0);
+    const ni = (psiStarI[k] ?? 0) + (gammaI[k] ?? 0);
+    r[k] = nr;
+    i[k] = ni;
+    ns += nr * nr + ni * ni;
+  }
+  const inv = 1 / (Math.sqrt(ns) + EPS_NORM);
+  for (let k = 0; k < N; k++) {
+    r[k] *= inv;
+    i[k] *= inv;
+  }
+  return { r, i };
+}
+
+/**
+ * Ξtoy(ψ; g) — IEEE realization of Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g).
+ *
+ * Implemented as the v0.1.0 left-associated three-term sum
+ *   N( ψ + α Γ_nbr(ψ) + β Φ_X ⊙ ψ )
+ * so the tick is bit-identical to the pre-declaration engine.
+ * `fuseToy(piReflexToy(ψ), gammaToy(ψ))` is the abstract composition and
+ * may differ by ulps: floating-point `+` is not associative.
+ */
+export function xiToy(
+  psiR: Float64Array,
+  psiI: Float64Array,
+  phi: Float64Array,
+  L: number,
+  alpha: number,
+  beta: number,
+): ComplexField {
+  const star = piReflexToy(psiR, psiI);
+  const nbr = neighborGamma(star.r, star.i, L);
+  const N = L * L;
+  const r = new Float64Array(N);
+  const i = new Float64Array(N);
+  let ns = 0;
+  for (let k = 0; k < N; k++) {
+    const pr = star.r[k] ?? 0;
+    const pi = star.i[k] ?? 0;
+    const nr = pr + alpha * (nbr.r[k] ?? 0) + beta * ((phi[k] ?? 0) * pr);
+    const ni = pi + alpha * (nbr.i[k] ?? 0) + beta * ((phi[k] ?? 0) * pi);
+    r[k] = nr;
+    i[k] = ni;
+    ns += nr * nr + ni * ni;
+  }
+  const inv = 1 / (Math.sqrt(ns) + EPS_NORM);
+  for (let k = 0; k < N; k++) {
+    r[k] *= inv;
+    i[k] *= inv;
+  }
+  return { r, i };
+}
+
+/**
+ * Collapse / intervention metric. Inputs are ψ only — no metric, no fiber,
+ * no dim(Y), no 14, no Shiab. C = |ψ|² / (ρ + ε), ρ = site-mean |ψ|².
+ */
+export function collapseMetric(
+  psiR: ArrayLike<number>,
+  psiI: ArrayLike<number>,
+): { C: Float64Array; Cmax: number; rho: number } {
+  const N = psiR.length;
+  let rho = 0;
+  for (let k = 0; k < N; k++) {
+    const pr = psiR[k] ?? 0;
+    const pi = psiI[k] ?? 0;
+    rho += pr * pr + pi * pi;
+  }
+  rho /= N;
+  const C = new Float64Array(N);
+  let Cmax = 0;
+  for (let k = 0; k < N; k++) {
+    const pr = psiR[k] ?? 0;
+    const pi = psiI[k] ?? 0;
+    const ck = (pr * pr + pi * pi) / (rho + EPS_RHO);
+    C[k] = ck;
+    if (ck > Cmax) Cmax = ck;
+  }
+  return { C, Cmax, rho };
+}
+
+/**
+ * Experiment-only local phase flip (× −1). Preserves |ψ|², is involutive,
+ * and is not a realization of canonical Λψ.
+ */
+export function phaseFlipIntervention(
+  psiR: Float64Array,
+  psiI: Float64Array,
+  C: Float64Array,
+  lambda: number,
+): number {
+  let flipped = 0;
+  for (let k = 0; k < C.length; k++) {
+    if ((C[k] ?? 0) > lambda) {
+      psiR[k] *= -1;
+      psiI[k] *= -1;
+      flipped = 1;
+    }
+  }
+  return flipped;
+}
+
+/** Mechanically tested P4: C is a function of ψ only. */
+export function p4IsolationOk(): boolean {
+  if (collapseMetric.length !== 2) return false;
+  const src = Function.prototype.toString.call(collapseMetric);
+  if (src.includes("14")) return false;
+  const lambda: number = LAMBDA_C;
+  if (lambda === 14 || lambda === fiberDim(4) + 4) return false;
+  return true;
 }
 
 export class QoftSim {
@@ -216,9 +441,8 @@ export class QoftSim {
   }
 
   private refreshDerived(): void {
-    const { g, psiR, psiI, phi, C, det } = this;
+    const { g, psiR, psiI, phi, det } = this;
     const N = this.L * this.L;
-    let rho = 0;
     for (let k = 0; k < N; k++) {
       const a = g[k * 3];
       const b = g[k * 3 + 1];
@@ -226,13 +450,9 @@ export class QoftSim {
       const d = a * c - b * b;
       det[k] = d;
       phi[k] = a + c + 0.1 * Math.log(Math.max(d, EPS_DET));
-      rho += psiR[k] * psiR[k] + psiI[k] * psiI[k];
     }
-    rho /= N;
-    for (let k = 0; k < N; k++) {
-      const mag2 = psiR[k] * psiR[k] + psiI[k] * psiI[k];
-      C[k] = mag2 / (rho + EPS_RHO);
-    }
+    const { C } = collapseMetric(psiR, psiI);
+    this.C.set(C);
   }
 
   private metricStep(): void {
@@ -257,75 +477,21 @@ export class QoftSim {
     }
   }
 
-  private gammaInto(outR: Float64Array, outI: Float64Array): void {
-    const { psiR, psiI, L } = this;
-    for (let i = 0; i < L; i++) {
-      const up = (i - 1 + L) % L;
-      const down = (i + 1) % L;
-      for (let j = 0; j < L; j++) {
-        const left = (j - 1 + L) % L;
-        const right = (j + 1) % L;
-        const k = i * L + j;
-        const ar =
-          0.25 *
-          (psiR[up * L + j] +
-            psiR[down * L + j] +
-            psiR[i * L + left] +
-            psiR[i * L + right]);
-        const ai =
-          0.25 *
-          (psiI[up * L + j] +
-            psiI[down * L + j] +
-            psiI[i * L + left] +
-            psiI[i * L + right]);
-        outR[k] = ar - psiR[k];
-        outI[k] = ai - psiI[k];
-      }
-    }
-  }
-
+  /** Ξtoy on the current (ψ, Φ_X(g)). */
   private qoftTick(): void {
     const { psiR, psiI, phi, L } = this;
     const { alpha, beta } = this.cfg;
-    const N = L * L;
-    const gR = new Float64Array(N);
-    const gI = new Float64Array(N);
-    this.gammaInto(gR, gI);
-    let ns = 0;
-    for (let k = 0; k < N; k++) {
-      const nr = psiR[k] + alpha * gR[k] + beta * (phi[k] * psiR[k]);
-      const ni = psiI[k] + alpha * gI[k] + beta * (phi[k] * psiI[k]);
-      psiR[k] = nr;
-      psiI[k] = ni;
-      ns += nr * nr + ni * ni;
-    }
-    const inv = 1 / (Math.sqrt(ns) + EPS_NORM);
-    for (let k = 0; k < N; k++) {
-      psiR[k] *= inv;
-      psiI[k] *= inv;
-    }
+    const next = xiToy(psiR, psiI, phi, L, alpha, beta);
+    this.psiR.set(next.r);
+    this.psiI.set(next.i);
   }
 
   private collapseGate(): { Cmax: number; collapsed: number } {
-    const { psiR, psiI, C, L } = this;
-    const N = L * L;
-    let rho = 0;
-    for (let k = 0; k < N; k++) {
-      rho += psiR[k] * psiR[k] + psiI[k] * psiI[k];
-    }
-    rho /= N;
-    let Cmax = 0;
+    const { C, Cmax } = collapseMetric(this.psiR, this.psiI);
+    this.C.set(C);
     let collapsed = 0;
-    for (let k = 0; k < N; k++) {
-      const mag2 = psiR[k] * psiR[k] + psiI[k] * psiI[k];
-      const ck = mag2 / (rho + EPS_RHO);
-      C[k] = ck;
-      if (ck > Cmax) Cmax = ck;
-      if (this.cfg.collapse && ck > LAMBDA_C) {
-        psiR[k] *= -1;
-        psiI[k] *= -1;
-        collapsed = 1;
-      }
+    if (this.cfg.collapse) {
+      collapsed = phaseFlipIntervention(this.psiR, this.psiI, C, LAMBDA_C);
     }
     return { Cmax, collapsed };
   }
@@ -343,23 +509,23 @@ export class QoftSim {
 
     const { psiR, psiI, det, phi, L } = this;
     const N = L * L;
-    const gR = new Float64Array(N);
-    const gI = new Float64Array(N);
-    this.gammaInto(gR, gI);
+    const nbr = neighborGamma(psiR, psiI, L);
     let state = 0;
-    let reflex = 0;
+    let gammaN = 0;
     let detMin = Infinity;
     let pull = 0;
     for (let k = 0; k < N; k++) {
       state += psiR[k] * psiR[k] + psiI[k] * psiI[k];
-      reflex += gR[k] * gR[k] + gI[k] * gI[k];
+      gammaN += (nbr.r[k] ?? 0) * (nbr.r[k] ?? 0) + (nbr.i[k] ?? 0) * (nbr.i[k] ?? 0);
       if (det[k] < detMin) detMin = det[k];
       pull += phi[k];
     }
+    const gNorm = Math.sqrt(gammaN);
     const row: TelemetryRow = {
       t: this.t,
       stateNorm: Math.sqrt(state),
-      reflexNorm: Math.sqrt(reflex),
+      gammaNorm: gNorm,
+      reflexNorm: gNorm,
       det_g_min: detMin,
       pullback_mean: pull / N,
       C_max: Cmax,
@@ -403,10 +569,7 @@ export function checkPass(
   if (!rows.every((r) => r.det_g_min > 0)) fails.push("P2 det_g");
   if (fiberDim(cfg.n) !== 3) fails.push("P3 fiber");
   if (rows.some((r) => !Number.isFinite(r.C_max))) fails.push("P4 C_max nonfinite");
-  const lambda: number = LAMBDA_C;
-  if (lambda === 14 || lambda === fiberDim(4) + 4) {
-    fails.push("P4 banned constant in lambda");
-  }
+  if (!p4IsolationOk()) fails.push("P4 collapse-metric isolation");
   if (!p5) fails.push("P5 deterministic");
   if (!cfg.collapse && rows.some((r) => r.collapsed !== 0)) {
     fails.push("P6 collapse-off");

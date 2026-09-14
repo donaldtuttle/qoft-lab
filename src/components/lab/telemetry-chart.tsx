@@ -15,7 +15,7 @@ const SERIES = [
   { key: "C_max", label: "C_max", color: "var(--color-signal)" },
   { key: "det_g_min", label: "det g min", color: "var(--color-pass)" },
   { key: "pullback_mean", label: "⟨Φ_X⟩", color: "var(--color-warn)" },
-  { key: "reflexNorm", label: "‖Γψ‖", color: "var(--color-paper)" },
+  { key: "gammaNorm", label: "‖Γψ‖", color: "var(--color-paper)" },
 ] as const;
 
 type SeriesKey = (typeof SERIES)[number]["key"];
@@ -26,7 +26,7 @@ export function TelemetryChart() {
     C_max: true,
     det_g_min: true,
     pullback_mean: false,
-    reflexNorm: false,
+    gammaNorm: false,
   });
 
   return (

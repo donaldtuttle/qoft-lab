@@ -1,8 +1,30 @@
 # QOFT Lab
 
-Interactive **GU × QOFT** calculus toy (n = 2). Metric fiber on X, independent observer field ψ, optional collapse gate.
+Interactive **GU × QOFT** calculus toy (n = 2). Metric fiber on X, independent observer field ψ, optional phase-flip intervention.
 
 This is **not a theory of everything**. Geometric Unity names (X, Y = Met(X), ι, π, ι*) are analogy only.
+
+**v0.1.1** is a DEVELOP [Typed Realization](docs/TYPED_REALIZATION.md) of the QOFT boundary. Canonical weight: **NONE**.
+
+## Realization boundary
+
+Canon: `Ξ(ψ) = Πᴽ(ψ) ⊕ Γ(ψ; ctx)` with `ψᴽ = Πᴽ(ψ) ∈ Ψᴽ ⊆ Ψ`.
+
+This toy:
+
+```
+Ψtoy       := normalized complex scalar fields on the L×L lattice
+Ψᴽtoy      := Ψtoy
+Πᴽtoy(ψ)   := ψ                         # identity self-model, declared
+Gtoy       := complex lattice update fields
+Γtoy(ψ; g) := α · (neighbor_average(ψ) − ψ) + β · Φ_X(g) ⊙ ψ
+⊕toy(ψᴽ, γ):= normalize(ψᴽ + γ)
+Ξtoy(ψ; g) := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+```
+
+Πᴽtoy is intentionally the identity — the toy does not contain a nontrivial reflexive self-model. Internal addition belongs inside ⊕toy. The IEEE tick is the original left-associated three-term sum `N(ψ + α Γ_nbr(ψ) + β Φ_X ⊙ ψ)` so v0.1.0 numerical dynamics are unchanged.
+
+The local × −1 phase flip is an **experiment-only intervention**. It preserves |ψ|², is reversible, and is **not** evidence that canonical Λψ has been realized. λ_c = 1.67 is a toy/local threshold, not a QOFT universal constant.
 
 ## Tick contract
 
@@ -10,33 +32,39 @@ Each tick, in order:
 
 1. **Metric step** on ι = g: `g ← g + ε σ` with σ a symmetric 2-tensor (mild traceless bias). Reject any site with det ≤ 0.
 2. **Pullback:** `Φ_X = Φ_Y(x, g_t(x)) = tr(g) + 0.1 log det(g)`
-3. **QOFT tick on ψ only:** `ψ ← normalize(ψ + α Γ(ψ) + β Φ_X · ψ)`  
-   Γ is a four-neighbor average minus ψ — a typed fusion stand-in, **not Shiab**.
-4. **Optional collapse on ψ:** `C = |ψ|² / (ρ + ε)`. If `C > λ_c = 1.67`, local phase flip (× −1). The gate does not see dim(Y), 14, or Shiab.
+3. **QOFT tick on ψ only:** `ψ ← Ξtoy(ψ; g)`
+4. **Optional phase-flip on ψ:** `C = collapseMetric(ψ) = |ψ|² / (ρ + ε)`. If `C > λ_c = 1.67`, local × −1. The metric does not see dim(Y), 14, or Shiab.
 
 ## Invariants P1–P6
 
-| | Check |
-|---|---|
-| P1 | Section law: π ∘ ι = id (g stored at each site x) |
-| P2 | det g > 0 (Riemannian; rejected updates leave the SPD cone) |
-| P3 | Fiber = 3 (independent components of symmetric bilinear forms on R²) |
-| P4 | C independent of 14 / dim(Y) / Shiab |
-| P5 | Same seed + config ⇒ identical telemetry |
-| P6 | Collapse off ⇒ `collapsed` stays 0 |
+| | Check | What it actually tests |
+|---|---|---|
+| P1 | Section law | π ∘ ι = id (g stored at each site x) |
+| P2 | det g > 0 | Riemannian; rejected updates leave the SPD cone |
+| P3 | Fiber = 3 | Independent components of symmetric bilinear forms on R² |
+| P4 | Collapse-metric isolation | C = f(ψ) only; λ_c ≠ 14. **Not** an enumerator of every banned id |
+| P5 | Deterministic | Same seed + config ⇒ identical telemetry |
+| P6 | Phase-flip off | When the gate is off, `collapsed` stays 0 |
 
-**Banned identifications:** Y = ψ · Shiab in C · literal 14 in C · G = Y · retrieve-as-ID.
+**Model constraints** (by construction, not a class-exhaustion check): Y = ψ · Shiab in C · literal 14 in C · G = Y · retrieve-as-ID.
 
 **Out of scope:** Shiab, G = H ⋉ N, spinors, U(64,64), n = 4.
+
+Telemetry: `gammaNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (a Γ-neighbor norm, not Πᴽ). `reflexNorm` is a deprecated alias of the same number.
 
 ## Run
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Then open the URL Vite prints. **Toy run · 32 ticks** executes the same contract as the original Python and prints `PASS` / `FAIL` for P1–P6.
+Then open the URL Vite prints. **Toy run · 32 ticks** executes the contract and prints `PASS` / `FAIL` for P1–P6.
+
+```bash
+npm run check          # typecheck + test + build
+python public/gu_qoft_toy.py --check-deterministic
+```
 
 The in-browser engine is seeded and deterministic with itself (P5). It is **not** bit-identical to numpy PCG64.
 
@@ -44,10 +72,12 @@ The in-browser engine is seeded and deterministic with itself (P5). It is **not*
 
 | Path | What |
 |---|---|
-| [`src/lib/qoft/sim.ts`](src/lib/qoft/sim.ts) | Tick engine, telemetry, P1–P6 |
+| [`src/lib/qoft/sim.ts`](src/lib/qoft/sim.ts) | Tick engine, Ξtoy, telemetry, P1–P6 |
+| [`src/lib/qoft/sim.test.ts`](src/lib/qoft/sim.test.ts) | Regression + golden v0.1.0 pin |
+| [`docs/TYPED_REALIZATION.md`](docs/TYPED_REALIZATION.md) | Canonical → runtime crosswalk |
 | [`src/stores/lab-store.ts`](src/stores/lab-store.ts) | Playback, config, CSV export |
 | [`src/components/lab/`](src/components/lab/) | Field canvas, controls, charts, contract |
-| [`public/gu_qoft_toy.py`](public/gu_qoft_toy.py) | Original Python toy |
+| [`public/gu_qoft_toy.py`](public/gu_qoft_toy.py) | Reference Python toy |
 
 ## License
 

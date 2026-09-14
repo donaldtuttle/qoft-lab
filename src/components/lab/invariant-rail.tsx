@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { fiberDim, LAMBDA_C } from "@/lib/qoft/sim";
+import { fiberDim, p4IsolationOk } from "@/lib/qoft/sim";
 import { fmt } from "@/lib/utils";
 import { getSim, useLab } from "@/stores/lab-store";
 
@@ -22,8 +22,8 @@ const INVARIANTS = [
   },
   {
     id: "P4",
-    name: "C independent of 14",
-    hint: "Collapse uses λc = 1.67 only — no dim(Y), no Shiab",
+    name: "C = f(ψ) only",
+    hint: "Collapse-metric isolation: C uses ψ, not g / fiber / 14. Banned GU ids are model constraints, not this check.",
   },
   {
     id: "P5",
@@ -32,8 +32,8 @@ const INVARIANTS = [
   },
   {
     id: "P6",
-    name: "collapse off",
-    hint: "When the gate is off, collapsed stays 0",
+    name: "phase-flip off",
+    hint: "When the intervention is off, collapsed stays 0",
   },
 ] as const;
 
@@ -57,7 +57,8 @@ function liveStatus(id: string): "pass" | "fail" | "pending" {
   if (id === "P1") return last.section_law_ok === 1 ? "pass" : "fail";
   if (id === "P2") return last.det_g_min > 0 ? "pass" : "fail";
   if (id === "P3") return fiberDim(config.n) === 3 ? "pass" : "fail";
-  if (id === "P4") return Number.isFinite(last.C_max) && (LAMBDA_C as number) !== 14 ? "pass" : "fail";
+  if (id === "P4")
+    return Number.isFinite(last.C_max) && p4IsolationOk() ? "pass" : "fail";
   if (id === "P5") return "pending";
   if (id === "P6") {
     if (config.collapse) return "pending";

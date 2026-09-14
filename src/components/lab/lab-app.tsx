@@ -9,7 +9,7 @@ import { TheoryDialog } from "@/components/lab/theory-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LAMBDA_C } from "@/lib/qoft/sim";
+import { LAMBDA_C, LAB_VERSION } from "@/lib/qoft/sim";
 import { LAYERS, useLab } from "@/stores/lab-store";
 
 function Header() {
@@ -29,7 +29,7 @@ function Header() {
             QOFT Lab
           </h1>
           <p className="text-sm text-muted-foreground">
-            GU × QOFT calculus toy · n=2 · fiber 3
+            GU × QOFT calculus toy · n=2 · fiber 3 · v{LAB_VERSION}
           </p>
         </div>
         <p className="mt-1 max-w-full truncate font-mono text-xs text-faint" title={logLine}>
@@ -47,10 +47,10 @@ function Header() {
         ) : null}
         {config.collapse ? (
           <Badge variant="warn">
-            collapse · λc {LAMBDA_C}
+            phase-flip · λc {LAMBDA_C}
           </Badge>
         ) : (
-          <Badge>collapse off</Badge>
+          <Badge>phase-flip off</Badge>
         )}
         <TheoryDialog />
         <Button
@@ -74,11 +74,10 @@ function FormulaBar() {
     <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="font-mono text-xs leading-relaxed text-muted-foreground">
-          ψ ← N(ψ + α Γ(ψ) + β Φ_X · ψ)
-          <span className="mx-2 text-faint">·</span>
-          C = |ψ|² / ρ
-          <span className="mx-2 text-faint">·</span>
-          Φ_Y = tr(g) + 0.1 log det(g)
+          Ξtoy(ψ) = Π*toy(ψ) ⊕toy Γtoy(ψ; g)
+        </p>
+        <p className="mt-0.5 font-mono text-xs leading-relaxed text-faint">
+          Π* = id · ⊕ = N(ψ* + γ) · Γ = α(avg−ψ) + β Φ_X ⊙ ψ · C = |ψ|² / ρ
         </p>
         <p className="mt-1 text-xs text-faint">
           Ellipse is g(x) · tick is arg ψ · dashed ring is C {">"} λc

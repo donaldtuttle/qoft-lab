@@ -2,19 +2,39 @@
 """
 gu_qoft_toy.py — runnable GU×QOFT *calculus toy* (not a TOE).
 
+DEVELOP Typed Realization of the QOFT boundary
+    Ξ(ψ) = Πᴽ(ψ) ⊕ Γ(ψ; ctx)
+Canonical weight: NONE. Not a canon amendment.
+
+This toy:
+    Ψtoy      := normalized complex scalar fields on the L×L lattice
+    Ψᴽtoy     := Ψtoy
+    Πᴽtoy(ψ)  := ψ                         (identity self-model, declared)
+    Gtoy      := complex lattice update fields
+    Γtoy(ψ;g) := α·(neighbor_avg(ψ)−ψ) + β·Φ_X(g)⊙ψ
+    ⊕toy      := normalize(ψᴽ + γ)
+    Ξtoy      := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+
 QOFT: tick / operator contract on ψ (observer field on X).
 GU names (ANALOGY only): X, Y=Met(X), ι, π, ι*.
 
-BANNED (run FAILs if present in dynamics):
+The optional phase-flip gate is an experiment-only intervention (× −1 on
+sites with C > λ_c). It is not a realization of canonical Λψ.
+λ_c = 1.67 is a toy/local threshold, not a QOFT universal constant.
+
+Model constraints (not one numeric check):
   Y==ψ, Shiab in C, 14 in C, G==Y, retrieve-as-ID.
 
 UNDEFINED / not coded: Shiab, G=H⋉N simulation, spinors, U(64,64), n=4.
+
+Intended numerical dynamics: unchanged from v0.1.0.
 """
 from __future__ import annotations
 
 import argparse
 import csv
 import hashlib
+import inspect
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,10 +42,12 @@ from pathlib import Path
 import numpy as np
 
 # --- fixed constants (QOFT-ish gate on ψ only; no dim(Y), no 14) ---
-LAMBDA_C = 1.67
+LAMBDA_C = 1.67  # toy/local threshold, not a QOFT universal constant
 EPS_DET = 1e-12
 EPS_RHO = 1e-12
 EPS_NORM = 1e-12
+
+LAB_VERSION = "0.1.1"
 
 
 @dataclass(frozen=True)
@@ -113,7 +135,7 @@ def metric_step(g: np.ndarray, rng: np.random.Generator, eps: float) -> np.ndarr
 
 
 def gamma_psi(psi: np.ndarray) -> np.ndarray:
-    """Γ(ψ) = discrete neighbor average − ψ  (typed fusion stand-in, NOT Shiab)."""
+    """Γ_nbr(ψ) = discrete neighbor average − ψ  (typed fusion stand-in, NOT Shiab)."""
     up = np.roll(psi, -1, axis=0)
     down = np.roll(psi, 1, axis=0)
     left = np.roll(psi, -1, axis=1)
@@ -122,23 +144,67 @@ def gamma_psi(psi: np.ndarray) -> np.ndarray:
     return avg - psi
 
 
-def qoft_tick(psi: np.ndarray, phi_x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
-    """ψ ← normalize(ψ + α Γ(ψ) + β Φ_X · ψ). ⊕ stand-in = additive typed update then normalize."""
+def pi_reflex_toy(psi: np.ndarray) -> np.ndarray:
+    """Πᴽtoy(ψ) := ψ. Identity self-model — declared, not hidden."""
+    return psi
+
+
+def gamma_toy(psi: np.ndarray, phi_x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
+    """Γtoy(ψ; g) := α·(neighbor_avg(ψ)−ψ) + β·Φ_X(g)⊙ψ. Gtoy is this field."""
+    return alpha * gamma_psi(psi) + beta * (phi_x * psi)
+
+
+def fuse_toy(psi_star: np.ndarray, gamma: np.ndarray) -> np.ndarray:
+    """⊕toy(ψᴽ, γ) := normalize(ψᴽ + γ). Internal addition lives here."""
+    nxt = psi_star + gamma
+    return nxt / (np.linalg.norm(nxt) + EPS_NORM)
+
+
+def xi_toy(psi: np.ndarray, phi_x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
+    """Abstract Ξtoy := Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g) on a pre-summed γ."""
+    return fuse_toy(pi_reflex_toy(psi), gamma_toy(psi, phi_x, alpha, beta))
+
+
+def qoft_tick_monolithic(psi: np.ndarray, phi_x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
+    """v0.1.0 formula, kept as the numerical-equivalence pin.
+    ψ ← normalize(ψ + α Γ_nbr(ψ) + β Φ_X · ψ)
+    """
     gterm = gamma_psi(psi)
     nxt = psi + alpha * gterm + beta * (phi_x * psi)
     return nxt / (np.linalg.norm(nxt) + EPS_NORM)
 
 
-def collapse_gate(psi: np.ndarray, enabled: bool) -> tuple[np.ndarray, float, int]:
+def qoft_tick(psi: np.ndarray, phi_x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
+    """ψ ← Ξtoy(ψ; g), IEEE-realized as the v0.1.0 three-term sum.
+
+    Πᴽtoy is applied (identity). Internal addition is left-associated
+    `ψ + α Γ_nbr + β Φ⊙ψ` so the tick is bit-identical to v0.1.0.
+    `xi_toy` (fuse of a pre-summed Γtoy) may differ by ulps.
+    """
+    psi_star = pi_reflex_toy(psi)
+    gterm = gamma_psi(psi_star)
+    nxt = psi_star + alpha * gterm + beta * (phi_x * psi_star)
+    return nxt / (np.linalg.norm(nxt) + EPS_NORM)
+
+
+def collapse_metric(psi: np.ndarray) -> tuple[np.ndarray, float, float]:
     """
     C = |ψ|² / (ρ + ε), ρ = site mean |ψ|².
-    If C > λ_c, flip local phase lock (multiply by -1 on those sites).
-    Does NOT use 14, dim(Y), or Shiab.
+
+    Inputs: ψ only. No metric, no fiber, no dim(Y), no 14, no Shiab.
     """
     mag2 = np.abs(psi) ** 2
     rho = float(np.mean(mag2))
     C = mag2 / (rho + EPS_RHO)
-    C_max = float(np.max(C))
+    return C, float(np.max(C)), rho
+
+
+def collapse_gate(psi: np.ndarray, enabled: bool) -> tuple[np.ndarray, float, int]:
+    """
+    Experiment-only local phase flip (× −1) on sites with C > λ_c.
+    Preserves |ψ|², is involutive, and is not canonical Λψ.
+    """
+    C, C_max, _rho = collapse_metric(psi)
     collapsed = 0
     out = psi
     if enabled:
@@ -148,6 +214,20 @@ def collapse_gate(psi: np.ndarray, enabled: bool) -> tuple[np.ndarray, float, in
             out[mask] *= -1.0
             collapsed = 1
     return out, C_max, collapsed
+
+
+def p4_isolation_ok() -> bool:
+    """Mechanically tested P4: C is a function of ψ only."""
+    params = list(inspect.signature(collapse_metric).parameters)
+    if params != ["psi"]:
+        return False
+    if 14 in (collapse_metric.__code__.co_consts or ()):
+        return False
+    if 14 in (collapse_gate.__code__.co_consts or ()):
+        return False
+    if LAMBDA_C == 14 or LAMBDA_C == fiber_dim(4) + 4:
+        return False
+    return True
 
 
 def run(cfg: Config) -> list[dict]:
@@ -161,16 +241,18 @@ def run(cfg: Config) -> list[dict]:
         g = metric_step(g, rng, cfg.epsilon_g)
         # 2) pull-back toy: Φ_X = Φ_Y(x, g_t(x))
         phi_x = phi_Y(g)
-        # 3) QOFT tick on ψ only
+        # 3) QOFT tick on ψ only — Ξtoy
         psi = qoft_tick(psi, phi_x, cfg.alpha, cfg.beta)
-        # 4) optional collapse on ψ only
+        # 4) optional phase-flip intervention on ψ only
         psi, C_max, collapsed = collapse_gate(psi, cfg.collapse)
 
         det = det_g(g)
+        gnorm = float(np.linalg.norm(gamma_psi(psi)))
         row = {
             "t": t,
             "stateNorm": float(np.linalg.norm(psi)),
-            "reflexNorm": float(np.linalg.norm(gamma_psi(psi))),
+            "gammaNorm": gnorm,
+            "reflexNorm": gnorm,  # deprecated alias of gammaNorm
             "det_g_min": float(np.min(det)),
             "pullback_mean": float(np.mean(phi_x)),
             "C_max": C_max,
@@ -192,10 +274,11 @@ def check_pass(rows: list[dict], cfg: Config, csv_path: Path | None = None) -> t
     # P3
     if fiber_dim(cfg.n) != 3:
         fails.append("P3 fiber")
-    # P4 — structural: source must not feed 14 into C (enforced by code review + marker)
-    # Runtime marker: C_max finite and independent of banned constants
+    # P4 — collapse-metric isolation (C = f(ψ) only)
     if any(not np.isfinite(r["C_max"]) for r in rows):
         fails.append("P4 C_max nonfinite")
+    if not p4_isolation_ok():
+        fails.append("P4 collapse-metric isolation")
     # P6
     if not cfg.collapse and any(r["collapsed"] != 0 for r in rows):
         fails.append("P6 collapse-off")
@@ -207,6 +290,7 @@ def write_csv(rows: list[dict], path: Path) -> None:
     fields = [
         "t",
         "stateNorm",
+        "gammaNorm",
         "reflexNorm",
         "det_g_min",
         "pullback_mean",
@@ -227,8 +311,25 @@ def file_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def assert_tick_equivalent(seed: int = 0, L: int = 8) -> None:
+    """Decomposed tick must match the v0.1.0 monolithic formula on fixed inputs."""
+    rng = np.random.default_rng(seed)
+    psi = rng.normal(size=(L, L)) + 1j * rng.normal(size=(L, L))
+    psi = psi / (np.linalg.norm(psi) + EPS_NORM)
+    phi_x = rng.normal(size=(L, L))
+    alpha, beta = 0.15, 0.05
+    a = qoft_tick_monolithic(psi, phi_x, alpha, beta)
+    b = qoft_tick(psi, phi_x, alpha, beta)
+    if not np.array_equal(a, b):
+        raise SystemExit("FAIL: qoft_tick is not bit-identical to the v0.1.0 tick")
+    # Abstract fuse(Π, Γtoy) is the same operator; IEEE + is not associative.
+    c = xi_toy(psi, phi_x, alpha, beta)
+    if not np.allclose(a, c, rtol=1e-15, atol=1e-15):
+        raise SystemExit("FAIL: abstract Ξtoy drifted from the v0.1.0 tick")
+
+
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="GU×QOFT calculus toy (n=2)")
+    p = argparse.ArgumentParser(description="GU×QOFT calculus toy (n=2) — Typed Realization v0.1.1")
     p.add_argument("--ticks", type=int, default=32)
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--n", type=int, default=2)
@@ -245,6 +346,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     out = Path(args.out) if args.out else Path(f"telemetry_seed{cfg.seed}_ticks{cfg.ticks}_collapse{args.collapse}.csv")
 
+    assert_tick_equivalent()
+
     rows = run(cfg)
     write_csv(rows, out)
 
@@ -258,16 +361,6 @@ def main(argv: list[str] | None = None) -> int:
             fails.append("P5 deterministic")
             ok = False
         tmp.unlink(missing_ok=True)
-
-    # P4: collapse uses LAMBDA_C only (no dim-Y / 14 / Shiab inputs in gate)
-    if LAMBDA_C == 14 or LAMBDA_C == fiber_dim(4) + 4:
-        fails.append("P4 banned constant in lambda")
-        ok = False
-    # Ban markers must remain absent from executable gate
-    gate_src = collapse_gate.__code__.co_consts
-    if 14 in gate_src:
-        fails.append("P4 literal 14 in collapse_gate")
-        ok = False
 
     status = "PASS" if ok and not fails else "FAIL"
     print(f"{status} P1-P6 fails={fails or '[]'} out={out}")
