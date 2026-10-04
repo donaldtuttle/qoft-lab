@@ -2,7 +2,7 @@
 
 **A hands-on guide. No mathematics required.**
 
-[Open QOFT Lab](https://donaldtuttle.github.io/qoft-lab/) · [Repository](https://github.com/donaldtuttle/qoft-lab)
+[Open QOFT Lab](https://qoft-lab-toy.grok.me/) · [GitHub Pages](https://donaldtuttle.github.io/qoft-lab/) · [Repository](https://github.com/donaldtuttle/qoft-lab)
 
 QOFT Lab lets you watch a small simulated world change, adjust the rules, and compare what happens. Each square contains a local geometric shape and an observer-field value, drawn as an ellipse and a small pointer. The program repeatedly updates these values and records checks on its own behavior.
 

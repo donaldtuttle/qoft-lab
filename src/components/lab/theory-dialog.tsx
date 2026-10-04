@@ -12,6 +12,7 @@ import { LAB_VERSION, LAMBDA_C, REALIZATION } from "@/lib/qoft/sim";
 const LAB_REPO = "https://github.com/donaldtuttle/qoft-lab";
 const CALCULUS_REPO = "https://github.com/donaldtuttle/qoft-calculus";
 const LAB_PAGES = "https://donaldtuttle.github.io/qoft-lab/";
+const LAB_GROK = "https://qoft-lab-toy.grok.me/";
 
 export function TheoryDialog() {
   const buildSha = import.meta.env.VITE_GIT_SHA as string | undefined;
@@ -45,6 +46,12 @@ export function TheoryDialog() {
             <dd className="text-muted-foreground">experiment-only intervention</dd>
             <dt className="text-faint">Canonical weight</dt>
             <dd className="text-muted-foreground">{REALIZATION.canonicalWeight}</dd>
+            <dt className="text-faint">Grok</dt>
+            <dd className="break-all text-muted-foreground">
+              <a href={LAB_GROK} className="text-signal underline-offset-2 hover:underline">
+                qoft-lab-toy.grok.me
+              </a>
+            </dd>
             <dt className="text-faint">Source</dt>
             <dd className="break-all text-muted-foreground">
               <a href={LAB_REPO} className="text-signal underline-offset-2 hover:underline">

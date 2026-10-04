@@ -2,7 +2,7 @@
 
 **GitHub Pages:** [QOFT Lab](https://donaldtuttle.github.io/qoft-lab/) (requires the one-time Pages setup below)
 
-**Original Grok app:** [pine-apple-dream-topaz.grok.me](https://pine-apple-dream-topaz.grok.me/)
+**Grok app:** [qoft-lab-toy.grok.me](https://qoft-lab-toy.grok.me/)
 
 Interactive **GU × QOFT** calculus toy (n = 2). Metric fiber on X, independent observer field ψ, optional phase-flip intervention.
 
@@ -38,19 +38,20 @@ VITE_BASE_PATH=/qoft-lab/ npm run preview
 # Open http://localhost:4173/qoft-lab/
 ```
 
-## Original Grok host pin
+## Grok host
 
 ```
-url:           https://pine-apple-dream-topaz.grok.me/
+url:           https://qoft-lab-toy.grok.me/
+previous:      https://pine-apple-dream-topaz.grok.me/  (retired)
 commit SHA:    NONE
 status:        UNPINNED
-project id:    01a09d59-018f-77b2-aea0-083cd64d0043  (Grok App Builder; not a git SHA)
-bundle:        /assets/routes-DYD6vqoF.js
+project id:    01a09d59-018f-77b2-aea0-083cd64d0043  (previous host, 2026-09-14; not a git SHA)
+bundle:        /assets/routes-DYD6vqoF.js  (previous host)
 ```
 
 The Grok host and `__grok/manifest.webmanifest` publish **no git commit**. Do not treat the live URL as a verified deployment of `main`.
 
-Observed fingerprint on 2026-09-14 (inference, not a pin):
+Observed fingerprint of the previous host on 2026-09-14 (inference, not a pin of the current URL):
 
 - UI version string `v 0.1.2`
 - minified engine object matches this repo's v0.1.2 `REALIZATION` (`DEVELOP`, `canonicalWeight: NONE`, D-Π-01 Πᴽ signature)
@@ -169,7 +170,7 @@ Telemetry: `gammaNbrNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (**Γ_
 
 GitHub hosting: [QOFT Lab on Pages](https://donaldtuttle.github.io/qoft-lab/) — see setup above.
 
-Original: [QOFT Lab on Grok](https://pine-apple-dream-topaz.grok.me/) — host SHA **UNPINNED**
+Grok app: [QOFT Lab](https://qoft-lab-toy.grok.me/) — host SHA **UNPINNED**
 
 Local:
 
