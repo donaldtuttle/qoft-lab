@@ -53,6 +53,11 @@ function Header() {
           <Badge>phase-flip off</Badge>
         )}
         <TheoryDialog />
+        <Button variant="ghost" size="sm" asChild>
+          <a href="https://github.com/donaldtuttle/qoft-lab" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -74,10 +79,10 @@ function FormulaBar() {
     <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="font-mono text-xs leading-relaxed text-muted-foreground">
-          Ξtoy(ψ) = Π*toy(ψ) ⊕toy Γtoy(ψ; g)
+          Ξtoy(ψ) = Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
         </p>
         <p className="mt-0.5 font-mono text-xs leading-relaxed text-faint">
-          Π* = id · ⊕ = N(ψ* + γ) · Γ = α(avg−ψ) + β Φ_X ⊙ ψ · C = |ψ|² / ρ
+          Πᴽ = id · ⊕ = N(ψᴽ + γ) · Γ = α(avg−ψ) + β Φ_X ⊙ ψ · C = |ψ|² / ρ
         </p>
         <p className="mt-1 text-xs text-faint">
           Ellipse is g(x) · tick is arg ψ · dashed ring is C {">"} λc

@@ -9,10 +9,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { LAB_VERSION, LAMBDA_C, REALIZATION } from "@/lib/qoft/sim";
 
-export function TheoryDialog() {
-  const buildSha = import.meta.env.VITE_GIT_SHA;
-  const hostUrl = new URL(import.meta.env.BASE_URL, window.location.origin).href;
+const LAB_REPO = "https://github.com/donaldtuttle/qoft-lab";
+const CALCULUS_REPO = "https://github.com/donaldtuttle/qoft-calculus";
+const LAB_PAGES = "https://donaldtuttle.github.io/qoft-lab/";
 
+export function TheoryDialog() {
+  const buildSha = import.meta.env.VITE_GIT_SHA as string | undefined;
+  const pythonHref = `${import.meta.env.BASE_URL}gu_qoft_toy.py`;
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -42,24 +45,36 @@ export function TheoryDialog() {
             <dd className="text-muted-foreground">experiment-only intervention</dd>
             <dt className="text-faint">Canonical weight</dt>
             <dd className="text-muted-foreground">{REALIZATION.canonicalWeight}</dd>
+            <dt className="text-faint">Source</dt>
+            <dd className="break-all text-muted-foreground">
+              <a href={LAB_REPO} className="text-signal underline-offset-2 hover:underline">
+                donaldtuttle/qoft-lab
+              </a>
+            </dd>
+            <dt className="text-faint">Pages</dt>
+            <dd className="break-all text-muted-foreground">
+              <a href={LAB_PAGES} className="text-signal underline-offset-2 hover:underline">
+                donaldtuttle.github.io/qoft-lab
+              </a>
+            </dd>
+            <dt className="text-faint">Calculus</dt>
+            <dd className="break-all text-muted-foreground">
+              <a href={CALCULUS_REPO} className="text-signal underline-offset-2 hover:underline">
+                donaldtuttle/qoft-calculus
+              </a>
+            </dd>
             <dt className="text-faint">Host pin</dt>
             <dd className="break-all text-muted-foreground">
               {buildSha ? (
                 <a
-                  href={`https://github.com/donaldtuttle/qoft-lab/commit/${buildSha}`}
+                  href={`${LAB_REPO}/commit/${buildSha}`}
                   className="text-signal underline-offset-2 hover:underline"
                 >
-                  {buildSha}
+                  {buildSha.slice(0, 12)}
                 </a>
-              ) : "UNPINNED — local / custom build"}
-            </dd>
-            <dt className="text-faint">Host URL</dt>
-            <dd className="break-all text-muted-foreground">
-              {hostUrl}
-            </dd>
-            <dt className="text-faint">Engine version</dt>
-            <dd className="text-muted-foreground">
-              v{LAB_VERSION}
+              ) : (
+                "UNPINNED — this host is not a git SHA"
+              )}
             </dd>
           </dl>
           <p className="text-xs text-faint">v{LAB_VERSION} · see docs/TYPED_REALIZATION.md</p>
@@ -78,13 +93,13 @@ export function TheoryDialog() {
         <section className="flex flex-col gap-2">
           <h3 className="text-sm font-medium">Realization</h3>
           <p className="font-mono text-xs leading-relaxed text-muted-foreground">
-            Ξtoy(ψ) = Π*toy(ψ) ⊕toy Γtoy(ψ; g)
+            Ξtoy(ψ) = Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Canonical Πᴽ : Ψ × Ctx × M → Ψᴽ. This toy sets Π*toy : Ψtoy → Ψtoy
+            Canonical Πᴽ : Ψ × Ctx × M → Ψᴽ. This toy sets Πᴽtoy : Ψtoy → Ψtoy
             with ctx = (g, α, β, L) and M unused. encode_A = decode_B = id.
-            Π*toy is the identity — not a hidden self-model. ⊕toy is
-            normalize(ψ* + γ). Γtoy is α(avg − ψ) + β Φ_X ⊙ ψ. Internal addition
+            Πᴽtoy is the identity — not a hidden self-model. ⊕toy is
+            normalize(ψᴽ + γ). Γtoy is α(avg − ψ) + β Φ_X ⊙ ψ. Internal addition
             belongs inside ⊕toy. The IEEE tick is exact vs v0.1.0; abstract
             fuse(Π, Γtoy) is a bounded 1e-15 approximation.
           </p>
@@ -134,7 +149,7 @@ export function TheoryDialog() {
           Same seed is deterministic in this engine (P5). It is not bit-identical to
           the numpy PCG64 original.{" "}
           <a
-            href={`${import.meta.env.BASE_URL}gu_qoft_toy.py`}
+            href={pythonHref}
             download
             className="text-signal underline-offset-2 hover:underline"
           >
