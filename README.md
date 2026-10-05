@@ -10,6 +10,26 @@ This is **not a theory of everything**. Geometric Unity names (X, Y = Met(X), ι
 
 **v0.1.2** is a DEVELOP [Typed Realization](docs/TYPED_REALIZATION.md) of the QOFT boundary. Canonical weight: **NONE**.
 
+## What is this?
+
+A small browser simulation of a complex field on a two-dimensional lattice,
+with local update rules and an optional phase-flip intervention.
+
+## Why care?
+
+A moving field image can hide which rule produced a change. This lab exposes
+the update contract, telemetry, and checks so you can connect the picture to
+the numerical operation and compare an intervention with it switched off.
+
+## Try this
+
+Follow [Run](#run), then select **Toy run · 32 ticks** and inspect the P1-P6
+checks. Compare runs with the same seed and configuration except for the
+phase-flip gate. With the gate off, inspect the `collapsed` count.
+The phase flip is a toy intervention; these checks do not validate physical
+collapse or the broader QOFT framework.
+
+
 ## GitHub Pages hosting
 
 The repository contains a standalone Vite app. GitHub Pages serves its built
