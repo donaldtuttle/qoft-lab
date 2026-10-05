@@ -97,9 +97,9 @@ The inspectable reference engine and public operator contract live in [`qoft-cal
 | [donaldtuttle/qoft-calculus](https://github.com/donaldtuttle/qoft-calculus) | Glyphogenic Calculus reference engine, Public Typed Realization A, Memory Weather, R¹² surfaces |
 | [donaldtuttle/qosmos-kernel](https://github.com/donaldtuttle/qosmos-kernel) | Minimal contract-enforced QOSMOS runtime kernel |
 | [donaldtuttle/HME](https://github.com/donaldtuttle/HME) | Hybrid field+ledger memory engine (DEVELOP; canonical weight none) |
-| [donaldtuttle/QOFT_Scaffold_Public](https://github.com/donaldtuttle/QOFT_Scaffold_Public) | Historical public scaffold / calculus genealogy |
 | [donaldtuttle/ARC-CEB-1.0](https://github.com/donaldtuttle/ARC-CEB-1.0) | ARC candidate-enumeration boundary suite |
-| [donaldtuttle/qosmos-core](https://github.com/donaldtuttle/qosmos-core) | Private core spec + scaffolding (not a public authority surface for this toy) |
+
+Older notes are private and are not part of this toy. That includes the old scaffold and the private core spec. This lab does not depend on them. The reference engine is [qoft-calculus](https://github.com/donaldtuttle/qoft-calculus). You do not need the private notes to read, run, or check the code here.
 
 Live siblings from `qoft-calculus`:
 
