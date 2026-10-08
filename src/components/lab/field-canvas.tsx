@@ -1,3 +1,4 @@
+import { usePlainLanguage } from "./edition";
 import { useEffect, useRef } from "react";
 import { LAMBDA_C } from "@/lib/qoft/sim";
 import { getSim, useLab, type Layer } from "@/stores/lab-store";
@@ -71,6 +72,7 @@ function drawField(
   layer: Layer,
   hover: { i: number; j: number } | null,
   pinned: { i: number; j: number } | null,
+  plain = false,
 ) {
   const pal = readTokens();
   const sim = getSim();
@@ -269,11 +271,11 @@ function drawField(
   ctx.font = `500 10px ${getComputedStyle(document.documentElement).getPropertyValue("--font-mono") || "monospace"}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText("x", ox + inner / 2, oy + inner + 8);
+  ctx.fillText(plain ? "column" : "x", ox + inner / 2, oy + inner + 8);
   ctx.save();
   ctx.translate(ox - 14, oy + inner / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText("x′", 0, 0);
+  ctx.fillText(plain ? "row" : "x′", 0, 0);
   ctx.restore();
 }
 
@@ -300,6 +302,7 @@ function cellFromPointer(
 }
 
 export function FieldCanvas() {
+  const plain = usePlainLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -326,7 +329,7 @@ export function FieldCanvas() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const hv = useLab.getState().hover;
       const pn = useLab.getState().pinned;
-      drawField(ctx, w, h, useLab.getState().layer, hv, pn);
+      drawField(ctx, w, h, useLab.getState().layer, hv, pn, plain);
     };
 
     paint();
@@ -337,7 +340,7 @@ export function FieldCanvas() {
       ro.disconnect();
       unsub();
     };
-  }, []);
+  }, [plain]);
 
   return (
     <div
@@ -348,7 +351,7 @@ export function FieldCanvas() {
         ref={canvasRef}
         className="size-full touch-none"
         role="img"
-        aria-label="Field on X: metric ellipses and observer field"
+        aria-label={plain ? "Grid with metric ellipses, field amplitude, and phase directions" : "Field on X: metric ellipses and observer field"}
         onPointerMove={(e) => {
           const cell = cellFromPointer(e.currentTarget, e.clientX, e.clientY, getSim().L);
           if (cell) useLab.getState().setHoverCell(cell.i, cell.j);

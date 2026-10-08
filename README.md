@@ -1,5 +1,10 @@
 # QOFT Lab
 
+**Plain language edition:** [Lattice Dynamics Lab](https://donaldtuttle.github.io/qoft-lab/plain.html)
+uses descriptive controls, a plain-language guide, and separate CSV headers.
+It shares the original numerical engine. See the [terminology crosswalk](docs/PLAIN_LANGUAGE.md).
+Locally, open `/plain.html`; the original edition remains at `/index.html`.
+
 **GitHub Pages:** [QOFT Lab](https://donaldtuttle.github.io/qoft-lab/) (requires the one-time Pages setup below)
 
 **Grok app:** [qoft-lab-toy.grok.me](https://qoft-lab-toy.grok.me/)

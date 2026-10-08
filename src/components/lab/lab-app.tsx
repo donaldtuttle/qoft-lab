@@ -1,3 +1,6 @@
+import { usePlainLanguage } from "./edition";
+import { PlainGuide } from "./plain-guide";
+import { PLAIN_LAYERS, telemetryToPlainCsv } from "@/lib/plain-language";
 import { Download, Pause, Play } from "lucide-react";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
@@ -13,6 +16,7 @@ import { LAMBDA_C, LAB_VERSION } from "@/lib/qoft/sim";
 import { LAYERS, useLab } from "@/stores/lab-store";
 
 function Header() {
+  const plain = usePlainLanguage();
   const playing = useLab((s) => s.playing);
   const tick = useLab((s) => s.tick);
   const result = useLab((s) => s.result);
@@ -26,19 +30,19 @@ function Header() {
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="font-display text-2xl leading-none tracking-tight sm:text-3xl">
-            QOFT Lab
+            {plain ? "Lattice Dynamics Lab" : "QOFT Lab"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            GU × QOFT calculus toy · n=2 · fiber 3 · v{LAB_VERSION}
+            {plain ? "Complex field · 2D grid · engine " : "GU × QOFT calculus toy · n=2 · fiber 3 · v"}{LAB_VERSION}
           </p>
         </div>
-        <p className="mt-1 max-w-full truncate font-mono text-xs text-faint" title={logLine}>
-          {logLine}
+        <p className="mt-1 max-w-full truncate font-mono text-xs text-faint" title={plain ? "Both editions use the same numerical engine." : logLine}>
+          {plain ? `Step ${tick} · seed ${config.seed} · ${config.grid} by ${config.grid} grid` : logLine}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={playing ? "signal" : "default"} className="tabular-nums">
-          t = {tick}
+          {plain ? "Step" : "t ="} {tick}
         </Badge>
         {result ? (
           <Badge variant={result.ok ? "pass" : "fail"}>
@@ -47,12 +51,17 @@ function Header() {
         ) : null}
         {config.collapse ? (
           <Badge variant="warn">
-            phase-flip · λc {LAMBDA_C}
+            {plain ? "Phase flip · threshold" : "phase-flip · λc"} {LAMBDA_C}
           </Badge>
         ) : (
           <Badge>phase-flip off</Badge>
         )}
-        <TheoryDialog />
+        {plain ? <PlainGuide /> : <TheoryDialog />}
+        <Button variant="ghost" size="sm" asChild>
+          <a href={`${import.meta.env.BASE_URL}${plain ? "index.html" : "plain.html"}`}>
+            {plain ? "Original edition" : "Plain language edition"}
+          </a>
+        </Button>
         <Button variant="ghost" size="sm" asChild>
           <a href="https://github.com/donaldtuttle/qoft-lab" target="_blank" rel="noreferrer">
             GitHub
@@ -61,11 +70,19 @@ function Header() {
         <Button
           variant="outline"
           size="sm"
-          onClick={exportCsv}
+          onClick={() => {
+            if (!plain) return exportCsv();
+            const url = URL.createObjectURL(new Blob([telemetryToPlainCsv(telemetry)], { type: "text/csv;charset=utf-8" }));
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `lattice_seed${config.seed}_steps${telemetry.length}_phase_flip_${config.collapse ? "on" : "off"}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+          }}
           disabled={telemetry.length === 0}
         >
           <Download />
-          CSV
+          {plain ? "Plain CSV" : "CSV"}
         </Button>
       </div>
     </header>
@@ -73,19 +90,20 @@ function Header() {
 }
 
 function FormulaBar() {
+  const plain = usePlainLanguage();
   const layer = useLab((s) => s.layer);
-  const label = LAYERS.find((l) => l.id === layer)?.label ?? layer;
+  const label = (plain ? PLAIN_LAYERS : LAYERS).find((l) => l.id === layer)?.label ?? layer;
   return (
     <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="font-mono text-xs leading-relaxed text-muted-foreground">
-          Ξtoy(ψ) = Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+          {plain ? "Next field = normalize((field + neighbor update) + geometry update)" : "Ξtoy(ψ) = Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)"}
         </p>
         <p className="mt-0.5 font-mono text-xs leading-relaxed text-faint">
-          Πᴽ = id · ⊕ = N(ψᴽ + γ) · Γ = α(avg−ψ) + β Φ_X ⊙ ψ · C = |ψ|² / ρ
+          {plain ? "Relative intensity = squared amplitude / (grid mean squared amplitude + 1e-12)" : "Πᴽ = id · ⊕ = N(ψᴽ + γ) · Γ = α(avg−ψ) + β Φ_X ⊙ ψ · C = |ψ|² / ρ"}
         </p>
         <p className="mt-1 text-xs text-faint">
-          Ellipse is g(x) · tick is arg ψ · dashed ring is C {">"} λc
+          {plain ? "Ellipse: local metric · line: phase and amplitude · outline: intensity above threshold" : <>Ellipse is g(x) · tick is arg ψ · dashed ring is C {">"} λc</>}
         </p>
       </div>
       <p className="text-xs text-faint">{label}</p>
@@ -143,6 +161,7 @@ function useHotkeys() {
 }
 
 function MobilePlay() {
+  const plain = usePlainLanguage();
   const playing = useLab((s) => s.playing);
   const setPlaying = useLab((s) => s.setPlaying);
   const step = useLab((s) => s.step);
@@ -174,7 +193,7 @@ function MobilePlay() {
         </Button>
       </div>
       <Button variant="signal" className="h-11 w-full" onClick={toyRun}>
-        Toy run · 32 ticks
+        {plain ? "Run 32 step check" : "Toy run · 32 ticks"}
       </Button>
     </div>
   );

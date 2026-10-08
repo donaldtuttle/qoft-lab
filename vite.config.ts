@@ -7,6 +7,14 @@ export default defineConfig({
   // Set by the Pages workflow; local development still runs at /.
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: {
+        original: fileURLToPath(new URL("./index.html", import.meta.url)),
+        plain: fileURLToPath(new URL("./plain.html", import.meta.url)),
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

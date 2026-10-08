@@ -1,6 +1,8 @@
+import { usePlainLanguage } from "./edition";
+import { PLAIN_CHECKS } from "@/lib/plain-language";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { fiberDim, p4IsolationOk } from "@/lib/qoft/sim";
+import { fiberDim, p4IsolationOk, sampleAt } from "@/lib/qoft/sim";
 import { fmt } from "@/lib/utils";
 import { getSim, useLab } from "@/stores/lab-store";
 
@@ -68,24 +70,26 @@ function liveStatus(id: string): "pass" | "fail" | "pending" {
 }
 
 export function InvariantRail() {
+  const plain = usePlainLanguage();
   const last = useLab((s) => s.last);
   const result = useLab((s) => s.result);
   const config = useLab((s) => s.config);
   const tick = useLab((s) => s.tick);
   const hover = useLab((s) => s.hover);
   const pinned = useLab((s) => s.pinned);
-  const sample = hover ?? pinned;
+  const selection = hover ?? pinned;
+  const sample = plain && selection ? sampleAt(getSim(), selection.i, selection.j) : selection;
   const over = tick > 0 ? getSim().overThreshold() : 0;
 
   return (
     <aside className="flex flex-col gap-4 border-t border-border bg-card p-4 lg:h-full lg:overflow-y-auto lg:border-t-0 lg:border-l">
       <div>
         <div className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Invariants
+          {plain ? "Software checks" : "Invariants"}
         </div>
         <ul className="flex flex-col gap-2">
-          {INVARIANTS.map((inv) => {
-            const st = liveStatus(inv.id);
+          {(plain ? PLAIN_CHECKS : INVARIANTS).map((inv) => {
+            const st = plain && inv.id === "P6" && config.collapse ? "n/a" : liveStatus(inv.id);
             return (
               <li
                 key={inv.id}
@@ -100,7 +104,7 @@ export function InvariantRail() {
                   variant={st === "pass" ? "pass" : st === "fail" ? "fail" : "default"}
                   className="shrink-0"
                 >
-                  {st === "pending" ? "—" : st.toUpperCase()}
+                  {st === "pending" ? (plain ? "WAIT" : "—") : st.toUpperCase()}
                 </Badge>
               </li>
             );
@@ -115,17 +119,17 @@ export function InvariantRail() {
           Live
         </div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2 font-mono text-xs tabular-nums">
-          <Stat k="t" v={String(tick)} />
-          <Stat k="‖ψ‖" v={last ? fmt(last.stateNorm, 6) : "—"} />
-          <Stat k="C_max" v={last ? fmt(last.C_max, 4) : "—"} />
-          <Stat k="det min" v={last ? fmt(last.det_g_min, 5) : "—"} />
-          <Stat k="⟨Φ_X⟩" v={last ? fmt(last.pullback_mean, 4) : "—"} />
-          <Stat k={'C > λc'} v={String(over)} />
+          <Stat k={plain ? "Step" : "t"} v={String(tick)} />
+          <Stat k={plain ? "Field norm" : "‖ψ‖"} v={last ? fmt(last.stateNorm, 6) : "—"} />
+          <Stat k={plain ? "Peak relative intensity" : "C_max"} v={last ? fmt(last.C_max, 4) : "—"} />
+          <Stat k={plain ? "Minimum determinant" : "det min"} v={last ? fmt(last.det_g_min, 5) : "—"} />
+          <Stat k={plain ? "Mean geometry signal" : "⟨Φ_X⟩"} v={last ? fmt(last.pullback_mean, 4) : "—"} />
+          <Stat k={plain ? "Cells above threshold" : "C > λc"} v={String(over)} />
         </dl>
         {result ? (
           <div className="mt-3">
             <Badge variant={result.ok ? "pass" : "fail"}>
-              {result.ok ? "PASS P1–P6" : `FAIL ${result.fails.join(" · ")}`}
+              {result.ok ? (plain ? "Applicable checks passed" : "PASS P1–P6") : `FAIL ${result.fails.join(" · ")}`}
             </Badge>
           </div>
         ) : null}
@@ -135,22 +139,22 @@ export function InvariantRail() {
 
       <div>
         <div className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Site {sample ? `(${sample.i}, ${sample.j})` : "— hover a cell"}
+          {plain ? "Cell" : "Site"} {sample ? `(${sample.i}, ${sample.j})` : (plain ? ": point or tap to inspect" : "— hover a cell")}
         </div>
         {sample ? (
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-xs tabular-nums">
-            <Stat k="g₁₁" v={fmt(sample.g11)} />
-            <Stat k="g₁₂" v={fmt(sample.g12)} />
-            <Stat k="g₂₂" v={fmt(sample.g22)} />
-            <Stat k="det" v={fmt(sample.det)} />
-            <Stat k="|ψ|" v={fmt(sample.mag, 5)} />
-            <Stat k="arg ψ" v={fmt(sample.phase, 3)} />
-            <Stat k="C" v={fmt(sample.C, 4)} />
-            <Stat k="Φ" v={fmt(sample.phi, 4)} />
+            <Stat k={plain ? "Matrix row 1, col 1" : "g₁₁"} v={fmt(sample.g11)} />
+            <Stat k={plain ? "Matrix row 1, col 2" : "g₁₂"} v={fmt(sample.g12)} />
+            <Stat k={plain ? "Matrix row 2, col 2" : "g₂₂"} v={fmt(sample.g22)} />
+            <Stat k={plain ? "Determinant" : "det"} v={fmt(sample.det)} />
+            <Stat k={plain ? "Amplitude" : "|ψ|"} v={fmt(sample.mag, 5)} />
+            <Stat k={plain ? "Phase (radians)" : "arg ψ"} v={fmt(sample.phase, 3)} />
+            <Stat k={plain ? "Relative intensity" : "C"} v={fmt(sample.C, 4)} />
+            <Stat k={plain ? "Geometry signal" : "Φ"} v={fmt(sample.phi, 4)} />
           </dl>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Click a cell to pin. n={config.n}, fiber {fiberDim(config.n)}.
+            {plain ? "Click or tap a cell to pin its amplitude, phase, and matrix values." : <>Click a cell to pin. n={config.n}, fiber {fiberDim(config.n)}.</>}
           </p>
         )}
       </div>
