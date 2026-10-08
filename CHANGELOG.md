@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased: plain language edition
+
+- Add Lattice Dynamics Lab at `plain.html`, sharing the original numerical engine.
+- Translate controls, layers, charts, cell inspection, help, and CSV headers into
+  descriptive mathematical and simulation terminology.
+- Explain phase flips as reversible phase inversions and their telemetry as
+  Boolean events; show the gate-off check as N/A while the gate is enabled.
+- Clear a completed check result when settings change.
+- Preserve historical CSV exports, fixtures, theory documentation, and all
+  numerical operations. Add export parity tests for both intervention settings.
+- Build both editions for local use and the existing GitHub Pages deployment.
+
 ## Unreleased — GitHub Pages hosting
 
 - Build and deploy the standalone app to `/qoft-lab/` after CI passes.

@@ -107,7 +107,7 @@ export const useLab = create<LabState>()((set, get) => ({
   setLayer: (v) => set({ layer: v }),
   patchConfig: (patch, reset = true) => {
     const config = { ...get().config, ...patch };
-    set({ config });
+    set({ config, result: null });
     if (reset) {
       get().reset();
       return;

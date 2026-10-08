@@ -1,3 +1,5 @@
+import { usePlainLanguage } from "./edition";
+import { PLAIN_LAYERS } from "@/lib/plain-language";
 import { Pause, Play, RotateCcw, SkipForward, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ function Row({
 }
 
 export function ControlPanel() {
+  const plain = usePlainLanguage();
   const config = useLab((s) => s.config);
   const playing = useLab((s) => s.playing);
   const speed = useLab((s) => s.speed);
@@ -73,7 +76,7 @@ export function ControlPanel() {
             Reset
           </Button>
           <Button variant="signal" onClick={toyRun} className="col-span-2">
-            Toy run · 32 ticks
+            {plain ? "Run 32 step check" : "Toy run · 32 ticks"}
           </Button>
         </div>
       </div>
@@ -83,6 +86,7 @@ export function ControlPanel() {
           min={1}
           max={48}
           step={1}
+          aria-label="Playback speed"
           value={[speed]}
           onValueChange={(v) => setSpeed(v[0] ?? 12)}
         />
@@ -95,7 +99,7 @@ export function ControlPanel() {
           Layer
         </div>
         <div className="flex flex-wrap gap-1 rounded-lg bg-secondary p-1">
-          {LAYERS.map((l) => (
+          {(plain ? PLAIN_LAYERS : LAYERS).map((l) => (
             <button
               key={l.id}
               type="button"
@@ -113,6 +117,7 @@ export function ControlPanel() {
       </div>
 
       <Separator />
+      {plain && <p className="text-xs text-muted-foreground">Seed and grid changes restart. Couplings change the current run. Reset before comparing settings.</p>}
 
       <div className="flex flex-col gap-4">
         <Row label="Seed" value={String(config.seed)}>
@@ -120,6 +125,7 @@ export function ControlPanel() {
             min={1}
             max={99}
             step={1}
+            aria-label="Seed"
             value={[config.seed]}
             onValueChange={(v) => patch({ seed: v[0] ?? 7 })}
           />
@@ -138,29 +144,32 @@ export function ControlPanel() {
             ))}
           </div>
         </Row>
-        <Row label="α  fusion" value={fmt(config.alpha, 3)}>
+        <Row label={plain ? "Neighbor coupling" : "α  fusion"} value={fmt(config.alpha, 3)}>
           <Slider
             min={0}
             max={0.5}
             step={0.01}
+            aria-label="Neighbor coupling"
             value={[config.alpha]}
             onValueChange={(v) => patch({ alpha: v[0] ?? 0.15 }, false)}
           />
         </Row>
-        <Row label="β  pullback" value={fmt(config.beta, 3)}>
+        <Row label={plain ? "Geometry coupling" : "β  pullback"} value={fmt(config.beta, 3)}>
           <Slider
             min={0}
             max={0.2}
             step={0.005}
+            aria-label="Geometry coupling"
             value={[config.beta]}
             onValueChange={(v) => patch({ beta: v[0] ?? 0.05 }, false)}
           />
         </Row>
-        <Row label="ε  metric" value={fmt(config.epsilonG, 3)}>
+        <Row label={plain ? "Metric variation" : "ε  metric"} value={fmt(config.epsilonG, 3)}>
           <Slider
             min={0}
             max={0.08}
             step={0.005}
+            aria-label="Metric variation"
             value={[config.epsilonG]}
             onValueChange={(v) => patch({ epsilonG: v[0] ?? 0.02 }, false)}
           />
@@ -169,7 +178,7 @@ export function ControlPanel() {
           <div>
             <div className="text-sm font-medium">Phase-flip gate</div>
             <div className="text-xs leading-snug text-muted-foreground">
-              Toy intervention · C {">"} λ<sub>c</sub> = {LAMBDA_C} · × −1, reversible
+              {plain ? `Reverse phase when relative intensity exceeds ${LAMBDA_C}. Reversible.` : <>Toy intervention · C {">"} λ<sub>c</sub> = {LAMBDA_C} · × −1, reversible</>}
             </div>
           </div>
           <Switch
@@ -181,7 +190,7 @@ export function ControlPanel() {
       </div>
 
       <Button variant="ghost" size="sm" onClick={applyV0} className="self-start px-0">
-        Load v0 defaults
+        {plain ? "Load reference settings" : "Load v0 defaults"}
       </Button>
     </aside>
   );

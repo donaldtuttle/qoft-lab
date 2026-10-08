@@ -1,3 +1,5 @@
+import { usePlainLanguage } from "./edition";
+import { PLAIN_SERIES_LABELS } from "@/lib/plain-language";
 import { useState } from "react";
 import {
   CartesianGrid,
@@ -21,6 +23,8 @@ const SERIES = [
 type SeriesKey = (typeof SERIES)[number]["key"];
 
 export function TelemetryChart() {
+  const plain = usePlainLanguage();
+  const series = SERIES.map((s) => ({ ...s, label: plain ? PLAIN_SERIES_LABELS[s.key] : s.label }));
   const telemetry = useLab((s) => s.telemetry);
   const [on, setOn] = useState<Record<SeriesKey, boolean>>({
     C_max: true,
@@ -33,10 +37,10 @@ export function TelemetryChart() {
     <section className="flex h-48 flex-col border-t border-border bg-card px-4 py-3 md:h-52">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Telemetry
+          {plain ? "Measurements" : "Telemetry"}
         </h2>
         <div className="flex flex-wrap gap-1">
-          {SERIES.map((s) => (
+          {series.map((s) => (
             <button
               key={s.key}
               type="button"
@@ -89,9 +93,9 @@ export function TelemetryChart() {
                   color: "var(--color-popover-foreground)",
                 }}
                 formatter={(value, name) => [fmt(Number(value)), String(name)]}
-                labelFormatter={(l) => `t = ${l}`}
+                labelFormatter={(l) => `${plain ? "Step index" : "t ="} ${l}`}
               />
-              {SERIES.map((s) =>
+              {series.map((s) =>
                 on[s.key] ? (
                   <Line
                     key={s.key}
