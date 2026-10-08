@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { LAMBDA_C } from "@/lib/qoft/sim";
+import { PHASE_FLIP_THRESHOLD } from "@/lib/lattice/sim";
 import { fmt } from "@/lib/utils";
 import { LAYERS, useLab } from "@/stores/lab-store";
 
@@ -36,11 +36,11 @@ export function ControlPanel() {
   const patch = useLab((s) => s.patchConfig);
   const reset = useLab((s) => s.reset);
   const step = useLab((s) => s.step);
-  const toyRun = useLab((s) => s.toyRun);
+  const checkRun = useLab((s) => s.checkRun);
   const setPlaying = useLab((s) => s.setPlaying);
   const setSpeed = useLab((s) => s.setSpeed);
   const setLayer = useLab((s) => s.setLayer);
-  const applyV0 = useLab((s) => s.applyV0);
+  const applyReference = useLab((s) => s.applyReference);
 
   return (
     <aside className="flex flex-col gap-5 border-b border-border bg-card p-4 lg:h-full lg:overflow-y-auto lg:border-r lg:border-b-0">
@@ -72,8 +72,8 @@ export function ControlPanel() {
             <RotateCcw />
             Reset
           </Button>
-          <Button variant="signal" onClick={toyRun} className="col-span-2">
-            Toy run · 32 ticks
+          <Button variant="signal" onClick={checkRun} className="col-span-2">
+            Check run · 32 ticks
           </Button>
         </div>
       </div>
@@ -126,62 +126,62 @@ export function ControlPanel() {
         </Row>
         <Row label="Grid" value={`${config.grid}×${config.grid}`}>
           <div className="grid grid-cols-4 gap-1">
-            {[8, 16, 24, 32].map((g) => (
+            {[8, 16, 24, 32].map((gridSize) => (
               <Button
-                key={g}
+                key={gridSize}
                 size="sm"
-                variant={config.grid === g ? "default" : "secondary"}
-                onClick={() => patch({ grid: g })}
+                variant={config.grid === gridSize ? "default" : "secondary"}
+                onClick={() => patch({ grid: gridSize })}
               >
-                {g}
+                {gridSize}
               </Button>
             ))}
           </div>
         </Row>
-        <Row label="α  fusion" value={fmt(config.alpha, 3)}>
+        <Row label="Neighbor coupling" value={fmt(config.neighborWeight, 3)}>
           <Slider
             min={0}
             max={0.5}
             step={0.01}
-            value={[config.alpha]}
-            onValueChange={(v) => patch({ alpha: v[0] ?? 0.15 }, false)}
+            value={[config.neighborWeight]}
+            onValueChange={(v) => patch({ neighborWeight: v[0] ?? 0.15 }, false)}
           />
         </Row>
-        <Row label="β  pullback" value={fmt(config.beta, 3)}>
+        <Row label="Matrix coupling" value={fmt(config.matrixWeight, 3)}>
           <Slider
             min={0}
             max={0.2}
             step={0.005}
-            value={[config.beta]}
-            onValueChange={(v) => patch({ beta: v[0] ?? 0.05 }, false)}
+            value={[config.matrixWeight]}
+            onValueChange={(v) => patch({ matrixWeight: v[0] ?? 0.05 }, false)}
           />
         </Row>
-        <Row label="ε  metric" value={fmt(config.epsilonG, 3)}>
+        <Row label="Matrix step size" value={fmt(config.matrixStepSize, 3)}>
           <Slider
             min={0}
             max={0.08}
             step={0.005}
-            value={[config.epsilonG]}
-            onValueChange={(v) => patch({ epsilonG: v[0] ?? 0.02 }, false)}
+            value={[config.matrixStepSize]}
+            onValueChange={(v) => patch({ matrixStepSize: v[0] ?? 0.02 }, false)}
           />
         </Row>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-2.5">
           <div>
             <div className="text-sm font-medium">Phase-flip gate</div>
             <div className="text-xs leading-snug text-muted-foreground">
-              Toy intervention · C {">"} λ<sub>c</sub> = {LAMBDA_C} · × −1, reversible
+              Relative power {">"} {PHASE_FLIP_THRESHOLD}; reversible sign change
             </div>
           </div>
           <Switch
-            checked={config.collapse}
-            onCheckedChange={(v) => patch({ collapse: v }, false)}
+            checked={config.phaseFlipEnabled}
+            onCheckedChange={(v) => patch({ phaseFlipEnabled: v }, false)}
             aria-label="Toggle phase-flip gate"
           />
         </div>
       </div>
 
-      <Button variant="ghost" size="sm" onClick={applyV0} className="self-start px-0">
-        Load v0 defaults
+      <Button variant="ghost" size="sm" onClick={applyReference} className="self-start px-0">
+        Load reference defaults
       </Button>
     </aside>
   );

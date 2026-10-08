@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -13,7 +12,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
-      VITE_BASE_PATH: /qoft-lab/
+      VITE_BASE_PATH: /${{ github.event.repository.name }}/
+      VITE_REPOSITORY: ${{ github.repository }}
       VITE_GIT_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
@@ -23,13 +23,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run check:integrity
       - run: npm test
+      - run: npm run check:terminology
       - run: npm run build
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements-ci.txt
-      - run: python public/gu_qoft_toy.py --check-deterministic --out /tmp/telemetry.csv
+      - run: python public/lattice_reference.py --check-deterministic --out /tmp/telemetry.csv
+      - run: python -m unittest discover -s tests -v
       - name: Record deployment source
         run: |
           node --input-type=module <<'JS'
@@ -37,6 +40,7 @@ jobs:
           const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
           writeFileSync('dist/version.json', JSON.stringify({
             version,
+            telemetrySchemaVersion: 2,
             commit: process.env.GITHUB_SHA,
             repository: process.env.GITHUB_REPOSITORY,
             run: process.env.GITHUB_RUN_ID,

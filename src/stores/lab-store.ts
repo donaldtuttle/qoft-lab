@@ -2,41 +2,41 @@ import { create } from "zustand";
 import {
   csvFilename,
   DEFAULT_CONFIG,
-  QoftSim,
-  runToy,
+  LatticeSim,
+  runChecks,
   telemetryToCsv,
-  TOY_TICKS,
-  V0_CONFIG,
+  CHECK_TICKS,
+  REFERENCE_CONFIG,
   type CheckResult,
   type Config,
   type SiteSample,
   type TelemetryRow,
   sampleAt,
-} from "@/lib/qoft/sim";
+} from "@/lib/lattice/sim";
 
 export type Layer =
   | "composite"
-  | "observer"
-  | "metric"
-  | "fiber"
-  | "collapse"
-  | "pullback";
+  | "field"
+  | "matrix"
+  | "components"
+  | "relative-power"
+  | "coupling";
 
 export const LAYERS: { id: Layer; label: string }[] = [
   { id: "composite", label: "Composite" },
-  { id: "observer", label: "Observer ψ" },
-  { id: "metric", label: "Metric ι" },
-  { id: "fiber", label: "Fiber RGB" },
-  { id: "collapse", label: "Collapse C" },
-  { id: "pullback", label: "Pullback Φ" },
+  { id: "field", label: "Complex field" },
+  { id: "matrix", label: "Matrix ellipses" },
+  { id: "components", label: "Matrix RGB" },
+  { id: "relative-power", label: "Relative power" },
+  { id: "coupling", label: "Matrix coupling" },
 ];
 
 const HISTORY_CAP = 256;
 
-let sim: QoftSim | null = null;
+let sim: LatticeSim | null = null;
 
-export function getSim(): QoftSim {
-  if (!sim) sim = new QoftSim(DEFAULT_CONFIG);
+export function getSim(): LatticeSim {
+  if (!sim) sim = new LatticeSim(DEFAULT_CONFIG);
   return sim;
 }
 
@@ -58,10 +58,10 @@ type LabState = {
   setSpeed: (v: number) => void;
   setLayer: (v: Layer) => void;
   patchConfig: (patch: Partial<Config>, reset?: boolean) => void;
-  applyV0: () => void;
+  applyReference: () => void;
   reset: () => void;
   step: () => void;
-  toyRun: () => void;
+  checkRun: () => void;
   setHoverCell: (i: number | null, j: number | null) => void;
   pinHover: () => void;
   exportCsv: () => void;
@@ -88,9 +88,9 @@ export const useLab = create<LabState>()((set, get) => ({
   result: null,
   hover: null,
   pinned: null,
-  logLine: "Idle — press Toy run for a 32-tick P1–P6 check. Canonical weight: NONE.",
+  logLine: "Idle. Run a 32-tick check to verify P1-P6.",
   init: () => {
-    sim = new QoftSim(get().config);
+    sim = new LatticeSim(get().config);
     set({
       ready: true,
       tick: 0,
@@ -107,18 +107,18 @@ export const useLab = create<LabState>()((set, get) => ({
   setLayer: (v) => set({ layer: v }),
   patchConfig: (patch, reset = true) => {
     const config = { ...get().config, ...patch };
-    set({ config });
+    set({ config, result: null, logLine: "Settings changed. Run checks again for this configuration." });
     if (reset) {
       get().reset();
       return;
     }
     if (sim) sim.cfg = { ...sim.cfg, ...patch };
   },
-  applyV0: () => {
-    set({ config: { ...V0_CONFIG } });
+  applyReference: () => {
+    set({ config: { ...REFERENCE_CONFIG } });
     get().reset();
     set({
-      logLine: "Loaded v0 defaults · grid 8 · seed 7 · phase-flip off",
+      logLine: "Loaded reference defaults · grid 8 · seed 7 · phase-flip off",
     });
   },
   reset: () => {
@@ -132,14 +132,14 @@ export const useLab = create<LabState>()((set, get) => ({
       hover: null,
       pinned: null,
       playing: false,
-      logLine: `Reset · seed ${config.seed} · grid ${config.grid}×${config.grid} · phase-flip ${config.collapse ? "on" : "off"}`,
+      logLine: `Reset · seed ${config.seed} · grid ${config.grid}×${config.grid} · phase-flip ${config.phaseFlipEnabled ? "on" : "off"}`,
     });
   },
   step: () => {
     const s = getSim();
     const row = s.step();
     set((state) => ({
-      tick: s.t,
+      tick: s.tick,
       last: row,
       telemetry: pushRow(state.telemetry, row),
       result: null,
@@ -147,21 +147,23 @@ export const useLab = create<LabState>()((set, get) => ({
       pinned: state.pinned ? sampleAt(s, state.pinned.i, state.pinned.j) : null,
     }));
   },
-  toyRun: () => {
+  checkRun: () => {
     const { config } = get();
-    const { rows, result } = runToy(config, TOY_TICKS);
-    sim = new QoftSim(config);
+    const { rows, result } = runChecks(config, CHECK_TICKS);
+    sim = new LatticeSim(config);
     for (let i = 0; i < rows.length; i++) sim.step();
     const status = result.ok ? "PASS" : "FAIL";
     const fails = result.fails.length ? result.fails.join(", ") : "[]";
-    const out = csvFilename(config, TOY_TICKS);
+    const out = csvFilename(config, CHECK_TICKS);
     set({
       playing: false,
-      tick: sim.t,
+      tick: sim.tick,
       last: rows[rows.length - 1] ?? null,
       telemetry: rows,
+      hover: null,
+      pinned: null,
       result,
-      logLine: `${status} P1–P6 fails=${fails} out=${out}`,
+      logLine: `${status} P1-P6 fails=${fails} out=${out}`,
     });
   },
   setHoverCell: (i, j) => {

@@ -5,11 +5,11 @@ import { ControlPanel } from "@/components/lab/control-panel";
 import { FieldCanvas } from "@/components/lab/field-canvas";
 import { InvariantRail } from "@/components/lab/invariant-rail";
 import { TelemetryChart } from "@/components/lab/telemetry-chart";
-import { TheoryDialog } from "@/components/lab/theory-dialog";
+import { ModelDialog } from "@/components/lab/model-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LAMBDA_C, LAB_VERSION } from "@/lib/qoft/sim";
+import { PHASE_FLIP_THRESHOLD, LAB_VERSION } from "@/lib/lattice/sim";
 import { LAYERS, useLab } from "@/stores/lab-store";
 
 function Header() {
@@ -26,10 +26,10 @@ function Header() {
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="font-display text-2xl leading-none tracking-tight sm:text-3xl">
-            QOFT Lab
+            Lattice Dynamics Lab
           </h1>
           <p className="text-sm text-muted-foreground">
-            GU × QOFT calculus toy · n=2 · fiber 3 · v{LAB_VERSION}
+            Complex lattice simulation · 2D · v{LAB_VERSION}
           </p>
         </div>
         <p className="mt-1 max-w-full truncate font-mono text-xs text-faint" title={logLine}>
@@ -38,23 +38,23 @@ function Header() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={playing ? "signal" : "default"} className="tabular-nums">
-          t = {tick}
+          tick = {tick}
         </Badge>
         {result ? (
           <Badge variant={result.ok ? "pass" : "fail"}>
             {result.ok ? "PASS" : "FAIL"}
           </Badge>
         ) : null}
-        {config.collapse ? (
+        {config.phaseFlipEnabled ? (
           <Badge variant="warn">
-            phase-flip · λc {LAMBDA_C}
+            phase flip threshold {PHASE_FLIP_THRESHOLD}
           </Badge>
         ) : (
           <Badge>phase-flip off</Badge>
         )}
-        <TheoryDialog />
+        <ModelDialog />
         <Button variant="ghost" size="sm" asChild>
-          <a href="https://github.com/donaldtuttle/qoft-lab" target="_blank" rel="noreferrer">
+          <a href={`https://github.com/${import.meta.env.VITE_REPOSITORY || "donaldtuttle/lattice-dynamics-lab"}`} target="_blank" rel="noreferrer">
             GitHub
           </a>
         </Button>
@@ -79,13 +79,13 @@ function FormulaBar() {
     <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="font-mono text-xs leading-relaxed text-muted-foreground">
-          Ξtoy(ψ) = Πᴽtoy(ψ) ⊕toy Γtoy(ψ; g)
+          next = normalize(field + neighbor update + matrix coupling)
         </p>
         <p className="mt-0.5 font-mono text-xs leading-relaxed text-faint">
-          Πᴽ = id · ⊕ = N(ψᴽ + γ) · Γ = α(avg−ψ) + β Φ_X ⊙ ψ · C = |ψ|² / ρ
+          Relative power = site power / (mean power + 1e-12)
         </p>
         <p className="mt-1 text-xs text-faint">
-          Ellipse is g(x) · tick is arg ψ · dashed ring is C {">"} λc
+          Ellipses show matrices; line direction shows phase; cell borders mark high relative power.
         </p>
       </div>
       <p className="text-xs text-faint">{label}</p>
@@ -147,7 +147,7 @@ function MobilePlay() {
   const setPlaying = useLab((s) => s.setPlaying);
   const step = useLab((s) => s.step);
   const reset = useLab((s) => s.reset);
-  const toyRun = useLab((s) => s.toyRun);
+  const checkRun = useLab((s) => s.checkRun);
   return (
     <div className="flex flex-col gap-2 lg:hidden">
       <div className="flex gap-2">
@@ -173,8 +173,8 @@ function MobilePlay() {
           Reset
         </Button>
       </div>
-      <Button variant="signal" className="h-11 w-full" onClick={toyRun}>
-        Toy run · 32 ticks
+      <Button variant="signal" className="h-11 w-full" onClick={checkRun}>
+        Check run · 32 ticks
       </Button>
     </div>
   );

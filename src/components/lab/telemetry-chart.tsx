@@ -12,10 +12,10 @@ import { cn, fmt } from "@/lib/utils";
 import { useLab } from "@/stores/lab-store";
 
 const SERIES = [
-  { key: "C_max", label: "C_max", color: "var(--color-signal)" },
-  { key: "det_g_min", label: "det g min", color: "var(--color-pass)" },
-  { key: "pullback_mean", label: "⟨Φ_X⟩", color: "var(--color-warn)" },
-  { key: "gammaNbrNorm", label: "‖Γnbr‖", color: "var(--color-paper)" },
+  { key: "maxRelativePower", label: "Peak relative power", color: "var(--color-signal)" },
+  { key: "minDeterminant", label: "Minimum determinant", color: "var(--color-pass)" },
+  { key: "meanMatrixCoupling", label: "Mean matrix coupling", color: "var(--color-warn)" },
+  { key: "neighborResidualNorm", label: "Neighbor residual norm", color: "var(--color-paper)" },
 ] as const;
 
 type SeriesKey = (typeof SERIES)[number]["key"];
@@ -23,10 +23,10 @@ type SeriesKey = (typeof SERIES)[number]["key"];
 export function TelemetryChart() {
   const telemetry = useLab((s) => s.telemetry);
   const [on, setOn] = useState<Record<SeriesKey, boolean>>({
-    C_max: true,
-    det_g_min: true,
-    pullback_mean: false,
-    gammaNbrNorm: false,
+    maxRelativePower: true,
+    minDeterminant: true,
+    meanMatrixCoupling: false,
+    neighborResidualNorm: false,
   });
 
   return (
@@ -67,7 +67,7 @@ export function TelemetryChart() {
             <LineChart data={telemetry} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
               <XAxis
-                dataKey="t"
+                dataKey="tick"
                 tick={{ fill: "var(--color-muted-foreground)", fontSize: 10 }}
                 tickLine={false}
                 axisLine={{ stroke: "var(--color-border)" }}
@@ -89,7 +89,7 @@ export function TelemetryChart() {
                   color: "var(--color-popover-foreground)",
                 }}
                 formatter={(value, name) => [fmt(Number(value)), String(name)]}
-                labelFormatter={(l) => `t = ${l}`}
+                labelFormatter={(l) => `tick = ${l}`}
               />
               {SERIES.map((s) =>
                 on[s.key] ? (

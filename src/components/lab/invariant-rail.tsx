@@ -1,52 +1,53 @@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { fiberDim, p4IsolationOk } from "@/lib/qoft/sim";
+import { symmetricComponentCount, relativePowerCheckOk } from "@/lib/lattice/sim";
 import { fmt } from "@/lib/utils";
 import { getSim, useLab } from "@/stores/lab-store";
 
 const INVARIANTS = [
   {
     id: "P1",
-    name: "section law",
-    hint: "π(ι(x)) = x at every site — pairing of base point to fiber slot",
+    name: "site mapping",
+    hint: "Stored grid coordinates match each matrix slot.",
   },
   {
     id: "P2",
-    name: "det g > 0",
-    hint: "Riemannian: rejected updates that would leave the SPD cone",
+    name: "positive determinant",
+    hint: "Reject candidate matrix updates with determinant at or below zero.",
   },
   {
     id: "P3",
-    name: "fiber = 3",
-    hint: "Independent components of symmetric bilinear forms on R²",
+    name: "3 matrix components",
+    hint: "A symmetric 2x2 matrix stores m11, m12, and m22.",
   },
   {
     id: "P4",
-    name: "C = f(ψ) only",
-    hint: "Collapse-metric isolation: C uses ψ, not g / fiber / 14. Banned GU ids are model constraints, not this check.",
+    name: "relative power",
+    hint: "Finite relative power and a numerical formula check.",
   },
   {
     id: "P5",
     name: "deterministic",
-    hint: "Same seed + config ⇒ identical telemetry",
+    hint: "Same seed and configuration reproduce telemetry in this runtime.",
   },
   {
     id: "P6",
-    name: "phase-flip off",
-    hint: "When the intervention is off, collapsed stays 0",
+    name: "disabled gate",
+    hint: "When the gate is disabled, no phase-flip events occur.",
   },
 ] as const;
 
-function liveStatus(id: string): "pass" | "fail" | "pending" {
+function liveStatus(id: string): "pass" | "fail" | "pending" | "not-applicable" {
   const { last, telemetry, result, config } = useLab.getState();
+  if (id === "P6" && config.phaseFlipEnabled) return "not-applicable";
   if (result) {
     const map: Record<string, string> = {
-      P1: "P1 section_law",
-      P2: "P2 det_g",
-      P3: "P3 fiber",
+      P1: "P1 site mapping",
+      P2: "P2 determinant",
+      P3: "P3 matrix components",
       P4: "P4",
       P5: "P5 deterministic",
-      P6: "P6 collapse-off",
+      P6: "P6 phase flip disabled",
     };
     const key = map[id] ?? id;
     const hit = result.fails.some((f) => f.startsWith(key) || f.includes(id));
@@ -54,15 +55,15 @@ function liveStatus(id: string): "pass" | "fail" | "pending" {
     return hit ? "fail" : "pass";
   }
   if (!last) return "pending";
-  if (id === "P1") return last.section_law_ok === 1 ? "pass" : "fail";
-  if (id === "P2") return last.det_g_min > 0 ? "pass" : "fail";
-  if (id === "P3") return fiberDim(config.n) === 3 ? "pass" : "fail";
+  if (id === "P1") return last.siteMappingOk === 1 ? "pass" : "fail";
+  if (id === "P2") return last.minDeterminant > 0 ? "pass" : "fail";
+  if (id === "P3") return symmetricComponentCount(config.n) === 3 ? "pass" : "fail";
   if (id === "P4")
-    return Number.isFinite(last.C_max) && p4IsolationOk() ? "pass" : "fail";
+    return Number.isFinite(last.maxRelativePower) && relativePowerCheckOk() ? "pass" : "fail";
   if (id === "P5") return "pending";
   if (id === "P6") {
-    if (config.collapse) return "pending";
-    return telemetry.every((r) => r.collapsed === 0) ? "pass" : "fail";
+    if (config.phaseFlipEnabled) return "pending";
+    return telemetry.every((r) => r.phaseFlipApplied === 0) ? "pass" : "fail";
   }
   return "pending";
 }
@@ -100,7 +101,7 @@ export function InvariantRail() {
                   variant={st === "pass" ? "pass" : st === "fail" ? "fail" : "default"}
                   className="shrink-0"
                 >
-                  {st === "pending" ? "—" : st.toUpperCase()}
+                  {st === "pending" ? "..." : st === "not-applicable" ? "N/A" : st.toUpperCase()}
                 </Badge>
               </li>
             );
@@ -115,17 +116,17 @@ export function InvariantRail() {
           Live
         </div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2 font-mono text-xs tabular-nums">
-          <Stat k="t" v={String(tick)} />
-          <Stat k="‖ψ‖" v={last ? fmt(last.stateNorm, 6) : "—"} />
-          <Stat k="C_max" v={last ? fmt(last.C_max, 4) : "—"} />
-          <Stat k="det min" v={last ? fmt(last.det_g_min, 5) : "—"} />
-          <Stat k="⟨Φ_X⟩" v={last ? fmt(last.pullback_mean, 4) : "—"} />
-          <Stat k={'C > λc'} v={String(over)} />
+          <Stat k="tick" v={String(tick)} />
+          <Stat k="Field norm" v={last ? fmt(last.stateNorm, 6) : "..."} />
+          <Stat k="Peak power" v={last ? fmt(last.maxRelativePower, 4) : "..."} />
+          <Stat k="det min" v={last ? fmt(last.minDeterminant, 5) : "..."} />
+          <Stat k="Mean coupling" v={last ? fmt(last.meanMatrixCoupling, 4) : "..."} />
+          <Stat k={'Above threshold'} v={String(over)} />
         </dl>
         {result ? (
           <div className="mt-3">
             <Badge variant={result.ok ? "pass" : "fail"}>
-              {result.ok ? "PASS P1–P6" : `FAIL ${result.fails.join(" · ")}`}
+              {result.ok ? "PASS P1-P6" : `FAIL ${result.fails.join(" · ")}`}
             </Badge>
           </div>
         ) : null}
@@ -135,22 +136,22 @@ export function InvariantRail() {
 
       <div>
         <div className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Site {sample ? `(${sample.i}, ${sample.j})` : "— hover a cell"}
+          Site {sample ? `(${sample.i}, ${sample.j})` : "... hover a cell"}
         </div>
         {sample ? (
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-xs tabular-nums">
-            <Stat k="g₁₁" v={fmt(sample.g11)} />
-            <Stat k="g₁₂" v={fmt(sample.g12)} />
-            <Stat k="g₂₂" v={fmt(sample.g22)} />
+            <Stat k="m11" v={fmt(sample.m11)} />
+            <Stat k="m12" v={fmt(sample.m12)} />
+            <Stat k="m22" v={fmt(sample.m22)} />
             <Stat k="det" v={fmt(sample.det)} />
-            <Stat k="|ψ|" v={fmt(sample.mag, 5)} />
-            <Stat k="arg ψ" v={fmt(sample.phase, 3)} />
-            <Stat k="C" v={fmt(sample.C, 4)} />
-            <Stat k="Φ" v={fmt(sample.phi, 4)} />
+            <Stat k="Magnitude" v={fmt(sample.mag, 5)} />
+            <Stat k="Phase" v={fmt(sample.phase, 3)} />
+            <Stat k="Rel. power" v={fmt(sample.relativePower, 4)} />
+            <Stat k="Coupling" v={fmt(sample.couplingField, 4)} />
           </dl>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Click a cell to pin. n={config.n}, fiber {fiberDim(config.n)}.
+            Click a cell to pin. n={config.n}, matrix components {symmetricComponentCount(config.n)}.
           </p>
         )}
       </div>

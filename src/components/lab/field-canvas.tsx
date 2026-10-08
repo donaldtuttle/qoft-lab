@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { LAMBDA_C } from "@/lib/qoft/sim";
+import { PHASE_FLIP_THRESHOLD } from "@/lib/lattice/sim";
 import { getSim, useLab, type Layer } from "@/stores/lab-store";
 
 type RGB = [number, number, number];
@@ -13,8 +13,8 @@ function parseHex(hex: string): RGB {
   ];
 }
 
-function mix(a: RGB, b: RGB, t: number): RGB {
-  const u = Math.min(1, Math.max(0, t));
+function mix(a: RGB, b: RGB, amount: number): RGB {
+  const u = Math.min(1, Math.max(0, amount));
   return [
     a[0] + (b[0] - a[0]) * u,
     a[1] + (b[1] - a[1]) * u,
@@ -95,20 +95,20 @@ function drawField(
   const oy = originY + pad;
 
   let magMax = 1e-12;
-  let phiMin = Infinity;
-  let phiMax = -Infinity;
+  let couplingMin = Infinity;
+  let couplingMax = -Infinity;
   let cMax = 1e-12;
   const N = L * L;
   for (let k = 0; k < N; k++) {
-    const m = Math.hypot(sim.psiR[k] ?? 0, sim.psiI[k] ?? 0);
+    const m = Math.hypot(sim.fieldReal[k] ?? 0, sim.fieldImag[k] ?? 0);
     if (m > magMax) magMax = m;
-    const p = sim.phi[k] ?? 0;
-    if (p < phiMin) phiMin = p;
-    if (p > phiMax) phiMax = p;
-    const ck = sim.C[k] ?? 0;
+    const p = sim.couplingField[k] ?? 0;
+    if (p < couplingMin) couplingMin = p;
+    if (p > couplingMax) couplingMax = p;
+    const ck = sim.relativePower[k] ?? 0;
     if (ck > cMax) cMax = ck;
   }
-  const phiSpan = Math.max(phiMax - phiMin, 1e-9);
+  const couplingSpan = Math.max(couplingMax - couplingMin, 1e-9);
 
   ctx.save();
   ctx.beginPath();
@@ -122,73 +122,73 @@ function drawField(
       const y = oy + i * cell;
       const cx = x + cell / 2;
       const cy = y + cell / 2;
-      const g11 = sim.g[k * 3] ?? 1;
-      const g12 = sim.g[k * 3 + 1] ?? 0;
-      const g22 = sim.g[k * 3 + 2] ?? 1;
-      const pr = sim.psiR[k] ?? 0;
-      const pi = sim.psiI[k] ?? 0;
+      const m11 = sim.matrices[k * 3] ?? 1;
+      const m12 = sim.matrices[k * 3 + 1] ?? 0;
+      const m22 = sim.matrices[k * 3 + 2] ?? 1;
+      const pr = sim.fieldReal[k] ?? 0;
+      const pi = sim.fieldImag[k] ?? 0;
       const mag = Math.hypot(pr, pi);
-      const C = sim.C[k] ?? 0;
-      const phi = sim.phi[k] ?? 0;
+      const relativePower = sim.relativePower[k] ?? 0;
+      const couplingField = sim.couplingField[k] ?? 0;
 
-      if (layer === "fiber") {
-        const r = Math.min(1, Math.max(0, (g11 - 0.4) / 1.2));
-        const g = Math.min(1, Math.max(0, (g12 + 0.6) / 1.2));
-        const b = Math.min(1, Math.max(0, (g22 - 0.4) / 1.2));
-        ctx.fillStyle = `rgba(${(40 + r * 180) | 0},${(40 + g * 180) | 0},${(40 + b * 180) | 0},0.95)`;
+      if (layer === "components") {
+        const r = Math.min(1, Math.max(0, (m11 - 0.4) / 1.2));
+        const green = Math.min(1, Math.max(0, (m12 + 0.6) / 1.2));
+        const b = Math.min(1, Math.max(0, (m22 - 0.4) / 1.2));
+        ctx.fillStyle = `rgba(${(40 + r * 180) | 0},${(40 + green * 180) | 0},${(40 + b * 180) | 0},0.95)`;
         ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
         continue;
       }
 
-      if (layer === "pullback") {
-        const t = (phi - phiMin) / phiSpan;
-        ctx.fillStyle = css(mix(pal.bg, pal.signal, 0.15 + 0.85 * t));
+      if (layer === "coupling") {
+        const intensity = (couplingField - couplingMin) / couplingSpan;
+        ctx.fillStyle = css(mix(pal.bg, pal.signal, 0.15 + 0.85 * intensity));
         ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
         continue;
       }
 
-      if (layer === "collapse") {
-        const t = Math.min(1, C / Math.max(cMax, LAMBDA_C));
-        const col = C > LAMBDA_C ? mix(pal.warn, pal.danger, 0.45) : mix(pal.bg, pal.warn, t);
+      if (layer === "relative-power") {
+        const intensity = Math.min(1, relativePower / Math.max(cMax, PHASE_FLIP_THRESHOLD));
+        const col = relativePower > PHASE_FLIP_THRESHOLD ? mix(pal.warn, pal.danger, 0.45) : mix(pal.bg, pal.warn, intensity);
         ctx.fillStyle = css(col);
         ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
         continue;
       }
 
-      if (layer === "observer") {
-        const t = mag / magMax;
-        ctx.fillStyle = css(mix(pal.bg, pal.signal, 0.08 + 0.92 * t));
+      if (layer === "field") {
+        const intensity = mag / magMax;
+        ctx.fillStyle = css(mix(pal.bg, pal.signal, 0.08 + 0.92 * intensity));
         ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
       } else {
-        const t = mag / magMax;
-        const heat = Math.max(0, (C - 0.8) / Math.max(LAMBDA_C, 1));
-        const base = mix(pal.card, pal.signal, 0.12 + 0.55 * t);
+        const intensity = mag / magMax;
+        const heat = Math.max(0, (relativePower - 0.8) / Math.max(PHASE_FLIP_THRESHOLD, 1));
+        const base = mix(pal.card, pal.signal, 0.12 + 0.55 * intensity);
         ctx.fillStyle = css(mix(base, pal.warn, Math.min(0.55, heat)));
         ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
       }
 
-      if (C > LAMBDA_C) {
-        ctx.strokeStyle = css(pal.warn, useLab.getState().config.collapse ? 0.9 : 0.35);
+      if (relativePower > PHASE_FLIP_THRESHOLD) {
+        ctx.strokeStyle = css(pal.warn, useLab.getState().config.phaseFlipEnabled ? 0.9 : 0.35);
         ctx.lineWidth = Math.max(1, cell * 0.04);
-        ctx.setLineDash(useLab.getState().config.collapse ? [] : [3, 3]);
+        ctx.setLineDash(useLab.getState().config.phaseFlipEnabled ? [] : [3, 3]);
         ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
         ctx.setLineDash([]);
       }
     }
   }
 
-  if (layer === "composite" || layer === "metric") {
-    ctx.strokeStyle = css(pal.paper, layer === "metric" ? 0.85 : 0.7);
+  if (layer === "composite" || layer === "matrix") {
+    ctx.strokeStyle = css(pal.paper, layer === "matrix" ? 0.85 : 0.7);
     ctx.lineWidth = Math.max(0.8, cell * 0.045);
     for (let i = 0; i < L; i++) {
       for (let j = 0; j < L; j++) {
         const k = i * L + j;
         const cx = ox + (j + 0.5) * cell;
         const cy = oy + (i + 0.5) * cell;
-        const g11 = sim.g[k * 3] ?? 1;
-        const g12 = sim.g[k * 3 + 1] ?? 0;
-        const g22 = sim.g[k * 3 + 2] ?? 1;
-        const { l1, l2, theta } = eigen2(g11, g12, g22);
+        const m11 = sim.matrices[k * 3] ?? 1;
+        const m12 = sim.matrices[k * 3 + 1] ?? 0;
+        const m22 = sim.matrices[k * 3 + 2] ?? 1;
+        const { l1, l2, theta } = eigen2(m11, m12, m22);
         const scale = cell * 0.36;
         const rx = scale / Math.sqrt(Math.max(l1, 0.15));
         const ry = scale / Math.sqrt(Math.max(l2, 0.15));
@@ -203,14 +203,14 @@ function drawField(
     }
   }
 
-  if (layer === "composite" || layer === "observer") {
+  if (layer === "composite" || layer === "field") {
     for (let i = 0; i < L; i++) {
       for (let j = 0; j < L; j++) {
         const k = i * L + j;
         const cx = ox + (j + 0.5) * cell;
         const cy = oy + (i + 0.5) * cell;
-        const pr = sim.psiR[k] ?? 0;
-        const pi = sim.psiI[k] ?? 0;
+        const pr = sim.fieldReal[k] ?? 0;
+        const pi = sim.fieldImag[k] ?? 0;
         const mag = Math.hypot(pr, pi);
         const len = (mag / magMax) * cell * 0.38;
         const ang = Math.atan2(pi, pr);
@@ -269,11 +269,11 @@ function drawField(
   ctx.font = `500 10px ${getComputedStyle(document.documentElement).getPropertyValue("--font-mono") || "monospace"}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText("x", ox + inner / 2, oy + inner + 8);
+  ctx.fillText("column", ox + inner / 2, oy + inner + 8);
   ctx.save();
   ctx.translate(ox - 14, oy + inner / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText("x′", 0, 0);
+  ctx.fillText("row", 0, 0);
   ctx.restore();
 }
 
@@ -348,7 +348,7 @@ export function FieldCanvas() {
         ref={canvasRef}
         className="size-full touch-none"
         role="img"
-        aria-label="Field on X: metric ellipses and observer field"
+        aria-label="Complex lattice: matrix ellipses and phase vectors"
         onPointerMove={(e) => {
           const cell = cellFromPointer(e.currentTarget, e.clientX, e.clientY, getSim().L);
           if (cell) useLab.getState().setHoverCell(cell.i, cell.j);
