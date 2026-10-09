@@ -217,5 +217,3 @@ This guide was checked against source code and documentation at the pinned commi
 - [Chart series](https://github.com/donaldtuttle/qoft-lab/blob/8ada5c1bdd0071404bbfe4457842594636b02b07/src/components/lab/telemetry-chart.tsx)
 - [Layout and formula bar](https://github.com/donaldtuttle/qoft-lab/blob/8ada5c1bdd0071404bbfe4457842594636b02b07/src/components/lab/lab-app.tsx)
 - [Typed realization and its limits](https://github.com/donaldtuttle/qoft-lab/blob/8ada5c1bdd0071404bbfe4457842594636b02b07/docs/TYPED_REALIZATION.md)
-
-Suggested repository location: `docs/VISUAL_GUIDE.md`.
