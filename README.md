@@ -5,7 +5,7 @@ uses descriptive controls, a plain-language guide, and separate CSV headers.
 It shares the original numerical engine. See the [terminology crosswalk](docs/PLAIN_LANGUAGE.md).
 Locally, open `/plain.html`; the original edition remains at `/index.html`.
 
-**GitHub Pages:** [QOFT Lab](https://donaldtuttle.github.io/qoft-lab/) (requires the one-time Pages setup below)
+**GitHub Pages:** [QOFT Lab](https://donaldtuttle.github.io/qoft-lab/)
 
 **Grok app:** [qoft-lab-toy.grok.me](https://qoft-lab-toy.grok.me/)
 
@@ -40,10 +40,11 @@ collapse or the broader QOFT framework.
 The repository contains a standalone Vite app. GitHub Pages serves its built
 `dist/` directory; the simulation runs in the browser.
 
-One-time repository setup: open [Settings → Pages](https://github.com/donaldtuttle/qoft-lab/settings/pages),
-then set **Build and deployment → Source → GitHub Actions**. Run the
-[CI workflow](https://github.com/donaldtuttle/qoft-lab/actions/workflows/ci.yml)
-on `main` if a deployment has not already started.
+The [CI workflow](https://github.com/donaldtuttle/qoft-lab/actions/workflows/ci.yml)
+verifies changes and deploys successful `main` builds to GitHub Pages.
+For an independent deployment, select **Build and deployment → Source → GitHub Actions**
+in the target repository's [Settings → Pages](https://github.com/donaldtuttle/qoft-lab/settings/pages)
+and run the workflow on `main`.
 
 Every push to `main` runs the TypeScript checks, simulation tests, production
 build, and Python determinism check before publishing. Pull requests run the
@@ -193,7 +194,7 @@ Telemetry: `gammaNbrNorm` is ‖neighbor_avg(ψ) − ψ‖ after the tick (**Γ_
 
 ## Run
 
-GitHub hosting: [QOFT Lab on Pages](https://donaldtuttle.github.io/qoft-lab/) — see setup above.
+GitHub hosting: [QOFT Lab on Pages](https://donaldtuttle.github.io/qoft-lab/) — see hosting details above.
 
 Grok app: [QOFT Lab](https://qoft-lab-toy.grok.me/) — host SHA **UNPINNED**
 
